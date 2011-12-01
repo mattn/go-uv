@@ -77,12 +77,12 @@ type Tcp struct {
 }
 
 type CallbackInfo struct {
-	data string
+	data          string
 	connection_cb func(int)
-	connect_cb func(int)
-	read_cb func([]byte)
-	write_cb func(int)
-	close_cb func()
+	connect_cb    func(int)
+	read_cb       func([]byte)
+	write_cb      func(int)
+	close_cb      func()
 }
 
 func TcpInit() (tcp *Tcp, err error) {
@@ -94,7 +94,7 @@ func TcpInit() (tcp *Tcp, err error) {
 		return nil, errors.New(C.GoString(C.uv_strerror(e)))
 	}
 	t.data = unsafe.Pointer(&CallbackInfo{})
-	return &Tcp {&t}, nil
+	return &Tcp{&t}, nil
 }
 
 func (tcp *Tcp) Bind(host string, port uint16) (err error) {
@@ -113,7 +113,7 @@ func (tcp *Tcp) Connect(host string, port uint16, cb func(int)) (err error) {
 	cbi.connect_cb = cb
 	phost := C.CString(host)
 	defer C.free(unsafe.Pointer(phost))
-    var req C.uv_connect_t
+	var req C.uv_connect_t
 	r := C._uv_tcp_connect(&req, tcp.t, C.uv_ip4_addr(phost, C.int(port)))
 	if r != 0 {
 		e := C.uv_last_error(C.uv_default_loop())
@@ -169,7 +169,7 @@ func (tcp *Tcp) ReadStop() (err error) {
 func (tcp *Tcp) Write(b []byte, cb func(int)) (err error) {
 	cbi := (*CallbackInfo)(tcp.t.data)
 	cbi.write_cb = cb
-    var req C.uv_write_t
+	var req C.uv_write_t
 	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)))
 	r := C._uv_write(&req, C._uv_tcp_to_stream(tcp.t), &buf, 1)
 	if r != 0 {
@@ -226,5 +226,5 @@ func __uv_close_cb(p unsafe.Pointer) {
 }
 
 func Run() {
-    C.uv_run(C.uv_default_loop())
+	C.uv_run(C.uv_default_loop())
 }
