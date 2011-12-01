@@ -26,16 +26,16 @@ func main() {
 	})
 
 	/*
-	go func() {
-		time.Sleep(1e9)
-		tcp, _ := uv.TcpInit()
-		tcp.Connect("0.0.0.0", 8888, func(status int) {
-			println(status)
-			tcp.Write([]byte("Hello World"), func(status int) {
-				println("sender: sent!", status)
+		go func() {
+			time.Sleep(1e9)
+			tcp, _ := uv.TcpInit()
+			tcp.Connect("0.0.0.0", 8888, func(status int) {
+				println(status)
+				tcp.Write([]byte("Hello World"), func(status int) {
+					println("sender: sent!", status)
+				})
 			})
-		})
-	}()
+		}()
 	*/
 
 	uv.Run()
