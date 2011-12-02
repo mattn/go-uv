@@ -2,6 +2,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG     = github.com/mattn/go-uv
 CGOFILES = \
+	callback.go  \
 	tcp.go  \
 	udp.go  \
 	pipe.go  \

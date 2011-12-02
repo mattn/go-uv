@@ -40,3 +40,7 @@ func (loop *Loop) UpdateTime() {
 func (loop *Loop) Now() int64 {
 	return int64(C.uv_now(loop.l))
 }
+
+func (loop *Loop) LastError() *Error {
+	return &Error{C.uv_last_error(loop.l)}
+}

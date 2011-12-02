@@ -3,7 +3,7 @@ package main
 import "github.com/mattn/go-uv"
 
 func main() {
-	tcp, _ := uv.TcpInit()
+	tcp, _ := uv.TcpInit(nil)
 	err := tcp.Bind(uv.Ip4Addr("0.0.0.0", 8888))
 	if err != nil {
 		panic(err)

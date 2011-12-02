@@ -3,7 +3,7 @@ package uv
 /*
 #include <uv/uv.h>
 
-static void _uv_exit_cb(uv_process_t*, int exit_status, int term_signal) {
+//static void _uv_exit_cb(uv_process_t*, int exit_status, int term_signal) {
 }
 */
 import "C"
@@ -19,3 +19,7 @@ type ProcessOptions struct {
   StdoutStream *Pipe
   StderrStream *Pipe
 }
+
+func Spawn(loop *Loop) {
+}
+

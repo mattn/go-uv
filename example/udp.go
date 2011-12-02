@@ -3,7 +3,7 @@ package main
 import "github.com/mattn/go-uv"
 
 func main() {
-	udp, _ := uv.UdpInit()
+	udp, _ := uv.UdpInit(nil)
 	err := udp.Bind(uv.Ip4Addr("0.0.0.0", 8888), 0)
 	if err != nil {
 		panic(err)
