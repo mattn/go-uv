@@ -38,5 +38,6 @@ func main() {
 		}()
 	*/
 
+	println(uv.Version())
 	uv.Run()
 }
