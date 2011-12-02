@@ -1,11 +1,9 @@
 package uv
 
 /*
-#include <stdio.h>
 #include <stdlib.h>
 #include <uv/uv.h>
 
-//========== TCP ==========
 extern void __uv_connect_cb(void* p, int status);
 static void _uv_connect_cb(uv_connect_t* req, int status) {
 	__uv_connect_cb(req->handle->data, status);
@@ -30,6 +28,15 @@ static uv_buf_t _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size) {
     char* buf;
     buf = (char*)malloc(suggested_size);
     return uv_buf_init(buf, suggested_size);
+}
+
+extern void __uv_shutdown_cb(void* p, int status);
+static void _uv_shutdown_cb(uv_shutdown_t* req, int status) {
+	__uv_shutdown_cb(req->handle->data, status);
+}
+
+static int _uv_shutdown(uv_shutdown_t* req, uv_stream_t* handle) {
+	return uv_shutdown(req, handle, _uv_shutdown_cb);
 }
 
 extern void __uv_close_cb(void* p);
@@ -61,17 +68,6 @@ static void _uv_close(uv_handle_t* handle) {
 	uv_close(handle, _uv_close_cb);
 }
 
-//========== TIMER ==========
-extern void __uv_timer_cb(void* p, int status);
-static void _uv_timer_cb(uv_timer_t* handle, int status) {
-	__uv_timer_cb(handle->data, status);
-}
-
-static int _uv_timer_start(uv_timer_t* handle, int64_t timeout, int64_t repeat) {
-	return uv_timer_start(handle, _uv_timer_cb, timeout, repeat);
-}
-
-//========== UTIL ==========
 static uv_stream_t* _uv_tcp_to_stream(uv_tcp_t* tcp) {
 	return (uv_stream_t*) tcp;
 }
@@ -79,13 +75,8 @@ static uv_stream_t* _uv_tcp_to_stream(uv_tcp_t* tcp) {
 static uv_handle_t* _uv_tcp_to_handle(uv_tcp_t* tcp) {
 	return (uv_handle_t*) tcp;
 }
-
-#cgo darwin LDFLAGS: -luv
-#cgo linux LDFLAGS: -luv
-#cgo windows LDFLAGS: -luv.dll -lws2_32
 */
 import "C"
-import "fmt"
 import "errors"
 import "unsafe"
 
@@ -99,6 +90,7 @@ type tcp_callback_info struct {
 	read_cb       func([]byte)
 	write_cb      func(int)
 	close_cb      func()
+	shutdown_cb    func(int)
 }
 
 func TcpInit() (tcp *Tcp, err error) {
@@ -113,21 +105,17 @@ func TcpInit() (tcp *Tcp, err error) {
 	return &Tcp{&t}, nil
 }
 
-func (tcp *Tcp) Bind(host string, port uint16) (err error) {
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
-	r := C.uv_tcp_bind(tcp.t, C.uv_ip4_addr(phost, C.int(port)))
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
+func (tcp *Tcp) Bind(sa SockaddrIn) (err error) {
+	var r C.int
+	sa4, is_v4 := sa.(*SockaddrIn4)
+	if is_v4 {
+		r = C.uv_tcp_bind(tcp.t, sa4.sa)
+	} else {
+		sa6, is_v6 := sa.(*SockaddrIn6)
+		if is_v6 {
+			r = C.uv_tcp_bind6(tcp.t, sa6.sa)
+		}
 	}
-	return nil
-}
-
-func (tcp *Tcp) Bind6(host string, port uint16) (err error) {
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
-	r := C.uv_tcp_bind6(tcp.t, C.uv_ip6_addr(phost, C.int(port)))
 	if r != 0 {
 		e := C.uv_last_error(C.uv_default_loop())
 		return errors.New(C.GoString(C.uv_strerror(e)))
@@ -174,27 +162,20 @@ func (tcp *Tcp) SimultaneousAccepts(enable bool) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Connect(host string, port uint16, cb func(int)) (err error) {
+func (tcp *Tcp) Connect(sa SockaddrIn, cb func(int)) (err error) {
 	cbi := (*tcp_callback_info)(tcp.t.data)
 	cbi.connect_cb = cb
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
 	var req C.uv_connect_t
-	r := C._uv_tcp_connect(&req, tcp.t, C.uv_ip4_addr(phost, C.int(port)))
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
+	var r C.int
+	sa4, is_v4 := sa.(*SockaddrIn4)
+	if is_v4 {
+		r = C._uv_tcp_connect(&req, tcp.t, sa4.sa)
+	} else {
+		sa6, is_v6 := sa.(*SockaddrIn6)
+		if is_v6 {
+			r = C._uv_tcp_connect6(&req, tcp.t, sa6.sa)
+		}
 	}
-	return nil
-}
-
-func (tcp *Tcp) Connect6(host string, port uint16, cb func(int)) (err error) {
-	cbi := (*tcp_callback_info)(tcp.t.data)
-	cbi.connect_cb = cb
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
-	var req C.uv_connect_t
-	r := C._uv_tcp_connect6(&req, tcp.t, C.uv_ip6_addr(phost, C.int(port)))
 	if r != 0 {
 		e := C.uv_last_error(C.uv_default_loop())
 		return errors.New(C.GoString(C.uv_strerror(e)))
@@ -259,6 +240,13 @@ func (tcp *Tcp) Write(b []byte, cb func(int)) (err error) {
 	return nil
 }
 
+func (tcp *Tcp) Shutdown(cb func(int)) {
+	cbi := (*tcp_callback_info)(tcp.t.data)
+	cbi.shutdown_cb = cb
+	var req C.uv_shutdown_t
+	C._uv_shutdown(&req, C._uv_tcp_to_stream(tcp.t))
+}
+
 func (tcp *Tcp) Close(cb func()) {
 	cbi := (*tcp_callback_info)(tcp.t.data)
 	cbi.close_cb = cb
@@ -312,124 +300,10 @@ func __uv_close_cb(p unsafe.Pointer) {
 	}
 }
 
-type Loop struct {
-	l *C.uv_loop_t
-}
-
-func DefaultLoop() *Loop {
-	return &Loop{C.uv_default_loop()}
-}
-
-func LoopNew() *Loop {
-	return &Loop{C.uv_loop_new()}
-}
-
-func (loop *Loop) Delete() {
-	C.uv_loop_delete(loop.l)
-}
-
-func (loop *Loop) Run() {
-	C.uv_run(loop.l)
-}
-
-func (loop *Loop) Ref() {
-	C.uv_ref(loop.l)
-}
-
-func (loop *Loop) Unref() {
-	C.uv_unref(loop.l)
-}
-
-func (loop *Loop) UpdateTime() {
-	C.uv_update_time(loop.l)
-}
-
-func (loop *Loop) Now() int64 {
-	return int64(C.uv_now(loop.l))
-}
-
-func Version() string {
-    return fmt.Sprintf("%d.%d", C.UV_VERSION_MAJOR, C.UV_VERSION_MINOR)
-}
-
-type Error struct {
-	e C.uv_err_t
-}
-
-func LastError() *Error {
-	return &Error{C.uv_last_error(C.uv_default_loop())}
-}
-
-func (err *Error) String() string {
-	return C.GoString(C.uv_strerror(err.e))
-}
-
-func (err *Error) Name() string {
-	return C.GoString(C.uv_err_name(err.e))
-}
-
-type Timer struct {
-	t *C.uv_timer_t
-}
-
-type timer_callback_info struct {
-	timer_cb      func(int)
-}
-
-func TimerInit() (timer *Timer, err error) {
-	var t C.uv_timer_t
-
-	r := C.uv_timer_init(C.uv_default_loop(), &t)
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return nil, errors.New(C.GoString(C.uv_strerror(e)))
-	}
-	t.data = unsafe.Pointer(&timer_callback_info{})
-	return &Timer{&t}, nil
-}
-
-func (timer *Timer) Start(timeout int64, repeat int64, cb func(int)) (err error) {
-	cbi := (*timer_callback_info)(timer.t.data)
-	cbi.timer_cb = cb
-	r := C._uv_timer_start(timer.t, C.int64_t(timeout), C.int64_t(repeat))
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
-	}
-	return nil
-}
-
-func (timer *Timer) Stop() (err error) {
-	r := C.uv_timer_stop(timer.t)
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
-	}
-	return nil
-}
-
-func (timer *Timer) Again() (err error) {
-	r := C.uv_timer_again(timer.t)
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
-	}
-	return nil
-}
-
-func (timer *Timer) SetRepeat(repeat int64) {
-	C.uv_timer_set_repeat(timer.t, C.int64_t(repeat))
-}
-
-func (timer *Timer) GetRepeat() int64 {
-	return int64(C.uv_timer_get_repeat(timer.t))
-}
-
-//export __uv_timer_cb
-func __uv_timer_cb(p unsafe.Pointer, status int) {
-	cbi := (*timer_callback_info)(p)
-	if cbi.timer_cb != nil {
-		cbi.timer_cb(status)
+//export __uv_shutdown_cb
+func __uv_shutdown_cb(p unsafe.Pointer, status int) {
+	cbi := (*tcp_callback_info)(p)
+	if cbi.shutdown_cb != nil {
+		cbi.shutdown_cb(status)
 	}
 }
-
