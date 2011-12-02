@@ -30,6 +30,7 @@ FINISHED
   int uv_timer_stop(uv_timer_t* timer);
   int uv_timer_again(uv_timer_t* timer);
   void uv_timer_set_repeat(uv_timer_t* timer, int64_t repeat);
+  int64_t uv_timer_get_repeat(uv_timer_t* timer);
   int uv_udp_init(uv_loop_t*, uv_udp_t* handle);
   int uv_udp_bind(uv_udp_t* handle, struct sockaddr_in addr,
   int uv_udp_bind6(uv_udp_t* handle, struct sockaddr_in6 addr,
@@ -45,6 +46,15 @@ FINISHED
   int uv_tcp_getsockname(uv_tcp_t* handle, struct sockaddr* name,
   int uv_tcp_getpeername(uv_tcp_t* handle, struct sockaddr* name,
   int uv_udp_getsockname(uv_udp_t* handle, struct sockaddr* name,
+  int uv_idle_init(uv_loop_t*, uv_idle_t* idle);
+  int uv_idle_start(uv_idle_t* idle, uv_idle_cb cb);
+  int uv_idle_stop(uv_idle_t* idle);
+  uint64_t uv_get_free_memory(void);
+  uint64_t uv_get_total_memory(void);
+  int uv_pipe_init(uv_loop_t*, uv_pipe_t* handle, int ipc);
+  void uv_pipe_open(uv_pipe_t*, uv_file file);
+  int uv_pipe_bind(uv_pipe_t* handle, const char* name);
+  void uv_pipe_connect(uv_connect_t* req, uv_pipe_t* handle,
 
 NOT FINISHED
   int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,
@@ -55,22 +65,14 @@ NOT FINISHED
   void uv_tty_reset_mode(void);
   int uv_tty_get_winsize(uv_tty_t*, int* width, int* height);
   uv_handle_type uv_guess_handle(uv_file file);
-  int uv_pipe_init(uv_loop_t*, uv_pipe_t* handle, int ipc);
-  void uv_pipe_open(uv_pipe_t*, uv_file file);
-  int uv_pipe_bind(uv_pipe_t* handle, const char* name);
-  void uv_pipe_connect(uv_connect_t* req, uv_pipe_t* handle,
   int uv_prepare_init(uv_loop_t*, uv_prepare_t* prepare);
   int uv_prepare_start(uv_prepare_t* prepare, uv_prepare_cb cb);
   int uv_prepare_stop(uv_prepare_t* prepare);
   int uv_check_init(uv_loop_t*, uv_check_t* check);
   int uv_check_start(uv_check_t* check, uv_check_cb cb);
   int uv_check_stop(uv_check_t* check);
-  int uv_idle_init(uv_loop_t*, uv_idle_t* idle);
-  int uv_idle_start(uv_idle_t* idle, uv_idle_cb cb);
-  int uv_idle_stop(uv_idle_t* idle);
   int uv_async_init(uv_loop_t*, uv_async_t* async,
   int uv_async_send(uv_async_t* async);
-  int64_t uv_timer_get_repeat(uv_timer_t* timer);
    int uv_ares_init_options(uv_loop_t*,
   void uv_ares_destroy(uv_loop_t*, ares_channel channel);
   int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,
@@ -108,8 +110,6 @@ NOT FINISHED
   void uv_loadavg(double avg[3]);
   int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle,
   int uv_exepath(char* buffer, size_t* size);
-  uint64_t uv_get_free_memory(void);
-  uint64_t uv_get_total_memory(void);
   extern uint64_t uv_hrtime(void);
   uv_err_t uv_dlopen(const char* filename, uv_lib_t* library);
   uv_err_t uv_dlclose(uv_lib_t library);
