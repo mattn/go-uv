@@ -20,6 +20,7 @@ type ProcessOptions struct {
   StderrStream *Pipe
 }
 
-func Spawn(loop *Loop) {
+func Spawn(loop *Loop, options ProcessOptions) {
+	// TODO
 }
 
