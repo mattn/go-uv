@@ -324,6 +324,10 @@ func LoopNew() *Loop {
 	return &Loop{C.uv_loop_new()}
 }
 
+func (loop *Loop) Delete() {
+	C.uv_loop_delete(loop.l)
+}
+
 func (loop *Loop) Run() {
 	C.uv_run(loop.l)
 }
@@ -342,10 +346,6 @@ func (loop *Loop) UpdateTime() {
 
 func (loop *Loop) Now() int64 {
 	return int64(C.uv_now(loop.l))
-}
-
-func (loop *Loop) Delete() {
-	C.uv_loop_delete(loop.l)
 }
 
 func Version() string {
