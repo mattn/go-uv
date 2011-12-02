@@ -7,7 +7,6 @@ func main() {
 
 	timer.Start(1000, 1000, func(status int) {
 		println("timer")
-		timer.Again()
 	})
 
 	uv.DefaultLoop().Run()
