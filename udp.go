@@ -97,21 +97,17 @@ func UdpInit() (udp *Udp, err error) {
 	return &Udp{&t}, nil
 }
 
-func (udp *Udp) Bind(host string, port uint16, flags uint) (err error) {
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
-	r := C.uv_udp_bind(udp.t, C.uv_ip4_addr(phost, C.int(port)), C.uint(flags))
-	if r != 0 {
-		e := C.uv_last_error(C.uv_default_loop())
-		return errors.New(C.GoString(C.uv_strerror(e)))
+func (udp *Udp) Bind(sa SockaddrIn, flags uint) (err error) {
+	var r C.int
+	sa4, is_v4 := sa.(*SockaddrIn4)
+	if is_v4 {
+		r = C.uv_udp_bind(udp.t, sa4.sa, C.uint(flags))
+	} else {
+		sa6, is_v6 := sa.(*SockaddrIn6)
+		if is_v6 {
+			r = C.uv_udp_bind6(udp.t, sa6.sa, C.uint(flags))
+		}
 	}
-	return nil
-}
-
-func (udp *Udp) Bind6(host string, port uint16, flags uint) (err error) {
-	phost := C.CString(host)
-	defer C.free(unsafe.Pointer(phost))
-	r := C.uv_udp_bind6(udp.t, C.uv_ip6_addr(phost, C.int(port)), C.uint(flags))
 	if r != 0 {
 		e := C.uv_last_error(C.uv_default_loop())
 		return errors.New(C.GoString(C.uv_strerror(e)))

@@ -10,7 +10,6 @@ import "errors"
 
 type SockaddrIn interface {
 	Name() (string, error)
-	Addr() unsafe.Pointer
 }
 
 type SockaddrIn4 struct {
