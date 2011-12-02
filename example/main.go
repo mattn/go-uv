@@ -35,9 +35,9 @@ func main() {
 					println("sender: sent!", status)
 				})
 			})
+			uv.DefaultLoop().Run()
 		}()
 	*/
 
-	println(uv.Version())
-	uv.Run()
+	uv.DefaultLoop().Run()
 }
