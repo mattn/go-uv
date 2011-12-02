@@ -5,12 +5,12 @@ package uv
 #include <uv/uv.h>
 
 extern void __uv_timer_cb(void* p, int status);
-static void _uv_timer_cb(uv_timer_t* handle, int status) {
-	__uv_timer_cb(handle->data, status);
+static void _uv_timer_cb(uv_timer_t* timer, int status) {
+	__uv_timer_cb(timer->data, status);
 }
 
-static int _uv_timer_start(uv_timer_t* handle, int64_t timeout, int64_t repeat) {
-	return uv_timer_start(handle, _uv_timer_cb, timeout, repeat);
+static int _uv_timer_start(uv_timer_t* timer, int64_t timeout, int64_t repeat) {
+	return uv_timer_start(timer, _uv_timer_cb, timeout, repeat);
 }
 */
 import "C"
