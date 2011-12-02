@@ -75,6 +75,8 @@ static uv_stream_t* _uv_tcp_to_stream(uv_tcp_t* tcp) {
 static uv_handle_t* _uv_tcp_to_handle(uv_tcp_t* tcp) {
 	return (uv_handle_t*) tcp;
 }
+
+#define _UV_SIZEOF_SOCKADDR_IN sizeof(struct sockaddr_in)
 */
 import "C"
 import "errors"
@@ -258,6 +260,28 @@ func (tcp *Tcp) IsActive() bool {
 		return true
 	}
 	return false
+}
+
+func (tcp *Tcp) GetSockname() (sa *Sockaddr, err error) {
+	var csa C.struct_sockaddr
+	l := C.int(C._UV_SIZEOF_SOCKADDR_IN)
+	r := C.uv_tcp_getsockname(tcp.t, &csa, &l)
+	if r != 0 {
+		e := C.uv_last_error(C.uv_default_loop())
+		return nil, errors.New(C.GoString(C.uv_strerror(e)))
+	}
+	return &Sockaddr{csa}, nil
+}
+
+func (tcp *Tcp) GetPeername() (sa *Sockaddr, err error) {
+	var csa C.struct_sockaddr
+	l := C.int(C._UV_SIZEOF_SOCKADDR_IN)
+	r := C.uv_tcp_getpeername(tcp.t, &csa, &l)
+	if r != 0 {
+		e := C.uv_last_error(C.uv_default_loop())
+		return nil, errors.New(C.GoString(C.uv_strerror(e)))
+	}
+	return &Sockaddr{csa}, nil
 }
 
 //export __uv_connect_cb

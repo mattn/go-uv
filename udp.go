@@ -67,6 +67,8 @@ static uv_stream_t* _uv_udp_to_stream(uv_udp_t* udp) {
 static uv_handle_t* _uv_udp_to_handle(uv_udp_t* udp) {
 	return (uv_handle_t*) udp;
 }
+
+#define _UV_SIZEOF_SOCKADDR_IN sizeof(struct sockaddr_in)
 */
 import "C"
 import "errors"
@@ -199,6 +201,17 @@ func (udp *Udp) IsActive() bool {
 		return true
 	}
 	return false
+}
+
+func (udp *Udp) GetSockname() (sa *Sockaddr, err error) {
+	var csa C.struct_sockaddr
+	l := C.int(C._UV_SIZEOF_SOCKADDR_IN)
+	r := C.uv_udp_getsockname(udp.t, &csa, &l)
+	if r != 0 {
+		e := C.uv_last_error(C.uv_default_loop())
+		return nil, errors.New(C.GoString(C.uv_strerror(e)))
+	}
+	return &Sockaddr{csa}, nil
 }
 
 //export __uv_udp_recv_cb

@@ -12,6 +12,10 @@ type SockaddrIn interface {
 	Name() (string, error)
 }
 
+type Sockaddr struct {
+	sa C.struct_sockaddr
+}
+
 type SockaddrIn4 struct {
 	sa C.struct_sockaddr_in
 }
