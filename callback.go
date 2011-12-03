@@ -114,6 +114,10 @@ static int _uv_idle_start(uv_idle_t* idle) {
 //}
 
 #define UV_SIZEOF_SOCKADDR_IN ((int)sizeof(struct sockaddr_in))
+
+#cgo darwin LDFLAGS: -luv
+#cgo linux LDFLAGS: -ldl -luv -lpthread -lrt -lm
+#cgo windows LDFLAGS: -luv.dll -lws2_32
 */
 import "C"
 import "unsafe"

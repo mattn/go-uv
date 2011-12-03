@@ -2,7 +2,7 @@ package uv
 
 /*
 #include <uv/uv.h>
-
+#include <stdlib.h>
 */
 import "C"
 import "unsafe"

@@ -14,6 +14,6 @@ CGOFILES = \
 	idle.go  \
 	memory.go \
 
-OFLAGS+=-luv
+#CGO_OFILES += $(shell find $(HOME)/dev/libuv/src -name "*.o")
 
 include $(GOROOT)/src/Make.pkg
