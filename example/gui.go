@@ -18,12 +18,12 @@ func main() {
 	window.ShowAll()
 
 	timer, _ := uv.TimerInit(nil)
-	timer.Start(1000, 1000, func(status int) {
+	timer.Start(1000, 1000, func(h *uv.Handle, status int) {
 		label.SetLabel(fmt.Sprintf("%v", time.Now()))
 	})
 
 	idle, _ := uv.IdleInit(nil)
-	idle.Start(func(status int) {
+	idle.Start(func(h *uv.Handle, status int) {
 		gtk.MainIterationDo(false)
 	})
 

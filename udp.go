@@ -46,29 +46,7 @@ func (udp *Udp) Bind(sa SockaddrIn, flags uint) (err error) {
 	return nil
 }
 
-func (udp *Udp) Listen(backlog int, cb func(int)) (err error) {
-	cbi := (*callback_info)(udp.u.data)
-	cbi.connection_cb = cb
-	r := uv_listen((*C.uv_stream_t)(unsafe.Pointer(udp.u)), backlog)
-	if r != 0 {
-		return udp.GetLoop().LastError().Error()
-	}
-	return nil
-}
-
-func (udp *Udp) Accept() (client *Udp, err error) {
-	c, err := UdpInit(udp.GetLoop())
-	if err != nil {
-		return nil, err
-	}
-	r := uv_accept((*C.uv_stream_t)(unsafe.Pointer(udp.u)), (*C.uv_stream_t)(unsafe.Pointer(c.u)))
-	if r != 0 {
-		return nil, udp.GetLoop().LastError().Error()
-	}
-	return &Udp{c.u, udp.l}, nil
-}
-
-func (udp *Udp) RecvStart(cb func([]byte, SockaddrIn, uint)) (err error) {
+func (udp *Udp) RecvStart(cb func(*Handle, []byte, SockaddrIn, uint)) (err error) {
 	cbi := (*callback_info)(udp.u.data)
 	cbi.udp_recv_cb = cb
 	r := uv_udp_recv_start(udp.u)
@@ -86,9 +64,9 @@ func (udp *Udp) RecvStop() (err error) {
 	return nil
 }
 
-func (udp *Udp) Send(b []byte, sa SockaddrIn, cb func(int)) (err error) {
+func (udp *Udp) Send(b []byte, sa SockaddrIn, cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(udp.u.data)
-	cbi.send_cb = cb
+	cbi.udp_send_cb = cb
 	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)))
 	var r int
 	sa4, is_v4 := sa.(*SockaddrIn4)
@@ -106,13 +84,13 @@ func (udp *Udp) Send(b []byte, sa SockaddrIn, cb func(int)) (err error) {
 	return nil
 }
 
-func (udp *Udp) Shutdown(cb func(int)) {
+func (udp *Udp) Shutdown(cb func(*Request, int)) {
 	cbi := (*callback_info)(udp.u.data)
 	cbi.shutdown_cb = cb
 	uv_shutdown((*C.uv_stream_t)(unsafe.Pointer(udp.u)))
 }
 
-func (udp *Udp) Close(cb func()) {
+func (udp *Udp) Close(cb func(*Handle)) {
 	cbi := (*callback_info)(udp.u.data)
 	cbi.close_cb = cb
 	uv_close((*C.uv_handle_t)(unsafe.Pointer(udp.u)))

@@ -8,36 +8,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tcp.Listen(10, func(status int) {
+	tcp.Listen(10, func(h *uv.Handle, status int) {
 		client, _ := tcp.Accept()
 		println("server: accept")
-		client.ReadStart(func(data []byte) {
+		client.ReadStart(func(h *uv.Handle, data []byte) {
 			println("client: read", string(data))
-			client.Write(data, func(status int) {
+			client.Write(data, func(r *uv.Request, status int) {
 				println("client: written")
 			})
-			client.Close(func() {
+			client.Close(func(h *uv.Handle) {
 				println("client: closed")
 			})
-			tcp.Close(func() {
+			tcp.Close(func(h *uv.Handle) {
 				println("server: closed")
 			})
 		})
 	})
-
-	/*
-		go func() {
-			time.Sleep(1e9)
-			tcp, _ := uv.TcpInit()
-			tcp.Connect("0.0.0.0", 8888, func(status int) {
-				println(status)
-				tcp.Write([]byte("Hello World"), func(status int) {
-					println("sender: sent!", status)
-				})
-			})
-			uv.DefaultLoop().Run()
-		}()
-	*/
 
 	uv.DefaultLoop().Run()
 }

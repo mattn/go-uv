@@ -8,36 +8,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	udp.Listen(10, func(status int) {
-		client, _ := udp.Accept()
-		println("server: accept")
-		client.RecvStart(func(data []byte, sa uv.SockaddrIn, flags uint) {
-			println("client: read", string(data))
-			client.Send(data, sa, func(status int) {
-				println("client: written")
-			})
-			client.Close(func() {
-				println("client: closed")
-			})
-			udp.Close(func() {
-				println("server: closed")
-			})
+	println("udp: start")
+	udp.RecvStart(func(h *uv.Handle, data []byte, sa uv.SockaddrIn, flags uint) {
+		println("udp: read", string(data))
+		udp.Send(data, sa, func(r *uv.Request, status int) {
+			println("udp: written")
+		})
+		udp.Close(func(h *uv.Handle) {
+			println("udp: closed")
 		})
 	})
-
-	/*
-		go func() {
-			time.Sleep(1e9)
-			tcp, _ := uv.TcpInit()
-			tcp.Connect("0.0.0.0", 8888, func(status int) {
-				println(status)
-				tcp.Write([]byte("Hello World"), func(status int) {
-					println("sender: sent!", status)
-				})
-			})
-			uv.DefaultLoop().Run()
-		}()
-	*/
 
 	uv.DefaultLoop().Run()
 }

@@ -29,7 +29,7 @@ func (idle *Idle) GetLoop() *Loop {
 	return &Loop{idle.l}
 }
 
-func (idle *Idle) Start(cb func(int)) (err error) {
+func (idle *Idle) Start(cb func(*Handle, int)) (err error) {
 	cbi := (*callback_info)(idle.i.data)
 	cbi.idle_cb = cb
 	r := uv_idle_start(idle.i)
@@ -47,7 +47,7 @@ func (idle *Idle) Stop() (err error) {
 	return nil
 }
 
-func (idle *Idle) Close(cb func()) {
+func (idle *Idle) Close(cb func(*Handle)) {
 	cbi := (*callback_info)(idle.i.data)
 	cbi.close_cb = cb
 	uv_close((*C.uv_handle_t)(unsafe.Pointer(idle.i)))

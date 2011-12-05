@@ -74,7 +74,7 @@ func (tcp *Tcp) SimultaneousAccepts(enable bool) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Connect(sa SockaddrIn, cb func(int)) (err error) {
+func (tcp *Tcp) Connect(sa SockaddrIn, cb func(*Handle, int)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.connect_cb = cb
 	var r int
@@ -93,7 +93,7 @@ func (tcp *Tcp) Connect(sa SockaddrIn, cb func(int)) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Listen(backlog int, cb func(int)) (err error) {
+func (tcp *Tcp) Listen(backlog int, cb func(*Handle, int)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.connection_cb = cb
 	r := uv_listen((*C.uv_stream_t)(unsafe.Pointer(tcp.t)), backlog)
@@ -115,7 +115,7 @@ func (tcp *Tcp) Accept() (client *Tcp, err error) {
 	return &Tcp{c.t, tcp.l}, nil
 }
 
-func (tcp *Tcp) ReadStart(cb func([]byte)) (err error) {
+func (tcp *Tcp) ReadStart(cb func(*Handle, []byte)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.read_cb = cb
 	r := uv_read_start((*C.uv_stream_t)(unsafe.Pointer(tcp.t)))
@@ -133,7 +133,7 @@ func (tcp *Tcp) ReadStop() (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Write(b []byte, cb func(int)) (err error) {
+func (tcp *Tcp) Write(b []byte, cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.write_cb = cb
 	buf := uv_buf_init(b)
@@ -144,7 +144,7 @@ func (tcp *Tcp) Write(b []byte, cb func(int)) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Shutdown(cb func(int)) (err error) {
+func (tcp *Tcp) Shutdown(cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.shutdown_cb = cb
 	r := uv_shutdown((*C.uv_stream_t)(unsafe.Pointer(tcp.t)))
@@ -154,7 +154,7 @@ func (tcp *Tcp) Shutdown(cb func(int)) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Close(cb func()) {
+func (tcp *Tcp) Close(cb func(*Handle)) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.close_cb = cb
 	uv_close((*C.uv_handle_t)(unsafe.Pointer(tcp.t)))
