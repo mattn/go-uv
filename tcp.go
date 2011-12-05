@@ -74,7 +74,7 @@ func (tcp *Tcp) SimultaneousAccepts(enable bool) (err error) {
 	return nil
 }
 
-func (tcp *Tcp) Connect(sa SockaddrIn, cb func(*Handle, int)) (err error) {
+func (tcp *Tcp) Connect(sa SockaddrIn, cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(tcp.t.data)
 	cbi.connect_cb = cb
 	var r int

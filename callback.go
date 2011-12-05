@@ -134,11 +134,11 @@ type Handle struct {
 
 type callback_info struct {
 	connection_cb func(*Handle, int)
-	connect_cb    func(*Handle, int)
+	connect_cb    func(*Request, int)
 	read_cb       func(*Handle, []byte)
 	udp_recv_cb   func(*Handle, []byte, SockaddrIn, uint)
 	write_cb      func(*Request, int)
-	udp_send_cb       func(*Request, int)
+	udp_send_cb   func(*Request, int)
 	close_cb      func(*Handle)
 	shutdown_cb   func(*Request, int)
 	timer_cb      func(*Handle, int)
@@ -288,7 +288,11 @@ func __uv_connect_cb(p unsafe.Pointer, status int) {
 	c := (*C.uv_connect_t)(p)
 	cbi := (*callback_info)(c.handle.data)
 	if cbi.connect_cb != nil {
-		cbi.connect_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(c.handle)), cbi.data}, status)
+		cbi.connect_cb(&Request{
+			(*C.uv_req_t)(unsafe.Pointer(c)),
+			&Handle{
+				(*C.uv_handle_t)(unsafe.Pointer(c.handle)),
+				cbi.data}}, status)
 	}
 }
 
