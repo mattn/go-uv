@@ -37,9 +37,9 @@ func (pipe *Pipe) Bind(name string) (err error) {
 	return nil
 }
 
-func (pipe *Pipe) Listen(backlog int, cb func(*Request, int)) (err error) {
+func (pipe *Pipe) Listen(backlog int, cb func(*Handle, int)) (err error) {
 	cbi := (*callback_info)(pipe.p.data)
-	cbi.connect_cb = cb
+	cbi.connection_cb = cb
 	r := uv_listen((*C.uv_stream_t)(unsafe.Pointer(pipe.p)), backlog)
 	if r != 0 {
 		return pipe.GetLoop().LastError().Error()
