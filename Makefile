@@ -13,6 +13,7 @@ CGOFILES = \
 	addr.go  \
 	idle.go  \
 	memory.go \
+	process.go \
 
 #CGO_OFILES += $(shell find $(HOME)/dev/libuv/src -name "*.o")
 

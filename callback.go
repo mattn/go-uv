@@ -14,6 +14,7 @@ extern void __uv_timer_cb(uv_timer_t* timer, int status);
 extern void __uv_idle_cb(uv_idle_t* handle, int status);
 extern void __uv_close_cb(uv_handle_t* handle);
 extern void __uv_shutdown_cb(uv_shutdown_t* req, int status);
+extern void __uv_exit_cb(uv_process_t* process, int exit_status, int term_signal);
 
 static uv_buf_t _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size) {
     char* buf;
@@ -73,45 +74,10 @@ static int _uv_idle_start(uv_idle_t* idle) {
 	return uv_idle_start(idle, __uv_idle_cb);
 }
 
-//static uv_stream_t* _uv_to_stream(void* any) {
-//	return (uv_stream_t*) any;
-//}
-//
-//static uv_tcp_t* _uv_to_tcp(void* any) {
-//	return (uv_tcp_t*) any;
-//}
-//
-//static uv_pipe_t* _uv_to_pipe(void* any) {
-//	return (uv_pipe_t*) any;
-//}
-//
-//static uv_udp_t* _uv_to_udp(void* any) {
-//	return (uv_udp_t*) any;
-//}
-//
-//static uv_timer_t* _uv_to_timer(void* any) {
-//	return (uv_timer_t*) any;
-//}
-//
-//static uv_idle_t* _uv_to_idle(void* any) {
-//	return (uv_idle_t*) any;
-//}
-//
-//static struct sockaddr* _uv_to_sa(void* any) {
-//	return (struct sockaddr*) any;
-//}
-//
-//static struct sockaddr_in _uv_to_sai4(void* any) {
-//	return *(struct sockaddr_in*) any;
-//}
-//
-//static struct sockaddr_in6 _uv_to_sai6(void* any) {
-//	return *(struct sockaddr_in6*) any;
-//}
-//
-//static uv_handle_t* _uv_to_handle(void* any) {
-//	return (uv_handle_t*) any;
-//}
+static int _uv_spawn(uv_loop_t* loop, uv_process_t* process, uv_process_options_t options) {
+	options.exit_cb = __uv_exit_cb;
+	return uv_spawn(loop, process, options);
+}
 
 #define UV_SIZEOF_SOCKADDR_IN ((int)sizeof(struct sockaddr_in))
 
@@ -143,6 +109,7 @@ type callback_info struct {
 	shutdown_cb   func(*Request, int)
 	timer_cb      func(*Handle, int)
 	idle_cb       func(*Handle, int)
+	exit_cb       func(*Handle, int, int)
 	data          interface{}
 }
 
@@ -283,6 +250,10 @@ func uv_idle_start(idle *C.uv_idle_t) int {
 	return int(C._uv_idle_start(idle))
 }
 
+func uv_spawn(loop *C.uv_loop_t, process *C.uv_process_t, options C.uv_process_options_t) int {
+	return int(C._uv_spawn(loop, process, options))
+}
+
 //export __uv_connect_cb
 func __uv_connect_cb(p unsafe.Pointer, status int) {
 	c := (*C.uv_connect_t)(p)
@@ -390,5 +361,15 @@ func __uv_idle_cb(p unsafe.Pointer, status int) {
 	if cbi.idle_cb != nil {
 		cbi.idle_cb(&Handle{
 			(*C.uv_handle_t)(unsafe.Pointer(i)), cbi.data}, status)
+	}
+}
+
+//export __uv_exit_cb
+func __uv_exit_cb(p unsafe.Pointer, exit_status int, term_signal int) {
+	pc := (*C.uv_process_t)(p)
+	cbi := (*callback_info)(pc.data)
+	if cbi.idle_cb != nil {
+		cbi.exit_cb(&Handle{
+			(*C.uv_handle_t)(unsafe.Pointer(pc)), cbi.data}, exit_status, term_signal)
 	}
 }

@@ -67,7 +67,7 @@ func (pipe *Pipe) Accept() (client *Pipe, err error) {
 	return &Pipe{c.p, pipe.l}, nil
 }
 
-func (pipe *Pipe) RecvStart(cb func(*Handle, []byte)) (err error) {
+func (pipe *Pipe) ReadStart(cb func(*Handle, []byte)) (err error) {
 	cbi := (*callback_info)(pipe.p.data)
 	cbi.read_cb = cb
 	r := uv_read_start((*C.uv_stream_t)(unsafe.Pointer(pipe.p)))
@@ -77,7 +77,7 @@ func (pipe *Pipe) RecvStart(cb func(*Handle, []byte)) (err error) {
 	return nil
 }
 
-func (pipe *Pipe) RecvStop() (err error) {
+func (pipe *Pipe) ReadStop() (err error) {
 	r := uv_read_stop((*C.uv_stream_t)(unsafe.Pointer(pipe.p)))
 	if r != 0 {
 		return pipe.GetLoop().LastError().Error()
