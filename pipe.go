@@ -9,6 +9,7 @@ import "unsafe"
 type Pipe struct {
 	p *C.uv_pipe_t
 	l *C.uv_loop_t
+	Handle
 }
 
 func PipeInit(loop *Loop, ipc int) (pipe *Pipe, err error) {
@@ -22,7 +23,7 @@ func PipeInit(loop *Loop, ipc int) (pipe *Pipe, err error) {
 		return nil, pipe.GetLoop().LastError().Error()
 	}
 	p.data = unsafe.Pointer(&callback_info{})
-	return &Pipe{&p, loop.l}, nil
+	return &Pipe{&p, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&p)), p.data}}, nil
 }
 
 func (pipe *Pipe) GetLoop() *Loop {
@@ -64,7 +65,7 @@ func (pipe *Pipe) Accept() (client *Pipe, err error) {
 	if r != 0 {
 		return nil, pipe.GetLoop().LastError().Error()
 	}
-	return &Pipe{c.p, pipe.l}, nil
+	return &Pipe{c.p, pipe.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(c.p)), c.p.data}}, nil
 }
 
 func (pipe *Pipe) ReadStart(cb func(*Handle, []byte)) (err error) {
@@ -100,14 +101,4 @@ func (pipe *Pipe) Shutdown(cb func(*Request, int)) {
 	cbi := (*callback_info)(pipe.p.data)
 	cbi.shutdown_cb = cb
 	uv_shutdown((*C.uv_stream_t)(unsafe.Pointer(pipe.p)))
-}
-
-func (pipe *Pipe) Close(cb func(*Handle)) {
-	cbi := (*callback_info)(pipe.p.data)
-	cbi.close_cb = cb
-	uv_close((*C.uv_handle_t)(unsafe.Pointer(pipe.p)))
-}
-
-func (pipe *Pipe) IsActive() bool {
-	return uv_is_active((*C.uv_handle_t)(unsafe.Pointer(pipe.p)))
 }

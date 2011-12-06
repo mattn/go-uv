@@ -9,6 +9,7 @@ import "unsafe"
 type Udp struct {
 	u *C.uv_udp_t
 	l *C.uv_loop_t
+	Handle
 }
 
 func UdpInit(loop *Loop) (udp *Udp, err error) {
@@ -22,7 +23,7 @@ func UdpInit(loop *Loop) (udp *Udp, err error) {
 		return nil, udp.GetLoop().LastError().Error()
 	}
 	u.data = unsafe.Pointer(&callback_info{})
-	return &Udp{&u, loop.l}, nil
+	return &Udp{&u, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&u)), u.data}}, nil
 }
 
 func (udp *Udp) GetLoop() *Loop {
@@ -88,16 +89,6 @@ func (udp *Udp) Shutdown(cb func(*Request, int)) {
 	cbi := (*callback_info)(udp.u.data)
 	cbi.shutdown_cb = cb
 	uv_shutdown((*C.uv_stream_t)(unsafe.Pointer(udp.u)))
-}
-
-func (udp *Udp) Close(cb func(*Handle)) {
-	cbi := (*callback_info)(udp.u.data)
-	cbi.close_cb = cb
-	uv_close((*C.uv_handle_t)(unsafe.Pointer(udp.u)))
-}
-
-func (udp *Udp) IsActive() bool {
-	return uv_is_active((*C.uv_handle_t)(unsafe.Pointer(udp.u)))
 }
 
 func (udp *Udp) GetSockname() (sa *Sockaddr, err error) {

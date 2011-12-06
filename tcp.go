@@ -9,6 +9,7 @@ import "unsafe"
 type Tcp struct {
 	t *C.uv_tcp_t
 	l *C.uv_loop_t
+	Handle
 }
 
 func TcpInit(loop *Loop) (tcp *Tcp, err error) {
@@ -22,7 +23,7 @@ func TcpInit(loop *Loop) (tcp *Tcp, err error) {
 		return nil, tcp.GetLoop().LastError().Error()
 	}
 	t.data = unsafe.Pointer(&callback_info{})
-	return &Tcp{&t, loop.l}, nil
+	return &Tcp{&t, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&t)), t.data}}, nil
 }
 
 func (tcp *Tcp) GetLoop() *Loop {
@@ -112,7 +113,7 @@ func (tcp *Tcp) Accept() (client *Tcp, err error) {
 	if r != 0 {
 		return nil, tcp.GetLoop().LastError().Error()
 	}
-	return &Tcp{c.t, tcp.l}, nil
+	return &Tcp{c.t, tcp.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(c.t)), c.t.data}}, nil
 }
 
 func (tcp *Tcp) ReadStart(cb func(*Handle, []byte)) (err error) {
@@ -152,16 +153,6 @@ func (tcp *Tcp) Shutdown(cb func(*Request, int)) (err error) {
 		return tcp.GetLoop().LastError().Error()
 	}
 	return nil
-}
-
-func (tcp *Tcp) Close(cb func(*Handle)) {
-	cbi := (*callback_info)(tcp.t.data)
-	cbi.close_cb = cb
-	uv_close((*C.uv_handle_t)(unsafe.Pointer(tcp.t)))
-}
-
-func (tcp *Tcp) IsActive() bool {
-	return uv_is_active((*C.uv_handle_t)(unsafe.Pointer(tcp.t)))
 }
 
 func (tcp *Tcp) GetSockname() (sa *Sockaddr, err error) {

@@ -113,6 +113,16 @@ type callback_info struct {
 	data          interface{}
 }
 
+func (handle *Handle) Close(cb func(*Handle)) {
+	cbi := (*callback_info)(handle.h.data)
+	cbi.close_cb = cb
+	uv_close(handle.h)
+}
+
+func (handle *Handle) IsActive() bool {
+	return uv_is_active(handle.h)
+}
+
 func uv_tcp_bind(tcp *C.uv_tcp_t, sa4 C.struct_sockaddr_in) int {
 	return int(C.uv_tcp_bind(tcp, sa4))
 }
@@ -368,7 +378,7 @@ func __uv_idle_cb(p unsafe.Pointer, status int) {
 func __uv_exit_cb(p unsafe.Pointer, exit_status int, term_signal int) {
 	pc := (*C.uv_process_t)(p)
 	cbi := (*callback_info)(pc.data)
-	if cbi.idle_cb != nil {
+	if cbi.exit_cb != nil {
 		cbi.exit_cb(&Handle{
 			(*C.uv_handle_t)(unsafe.Pointer(pc)), cbi.data}, exit_status, term_signal)
 	}

@@ -9,6 +9,7 @@ import "unsafe"
 type Timer struct {
 	t *C.uv_timer_t
 	l *C.uv_loop_t
+	Handle
 }
 
 func TimerInit(loop *Loop) (timer *Timer, err error) {
@@ -22,7 +23,7 @@ func TimerInit(loop *Loop) (timer *Timer, err error) {
 		return nil, timer.GetLoop().LastError().Error()
 	}
 	t.data = unsafe.Pointer(&callback_info{})
-	return &Timer{&t, loop.l}, nil
+	return &Timer{&t, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&t)), t.data}}, nil
 }
 
 func (timer *Timer) GetLoop() *Loop {
@@ -61,14 +62,4 @@ func (timer *Timer) SetRepeat(repeat int64) {
 
 func (timer *Timer) GetRepeat() int64 {
 	return int64(C.uv_timer_get_repeat(timer.t))
-}
-
-func (timer *Timer) Close(cb func(*Handle)) {
-	cbi := (*callback_info)(timer.t.data)
-	cbi.close_cb = cb
-	uv_close((*C.uv_handle_t)(unsafe.Pointer(timer.t)))
-}
-
-func (timer *Timer) IsActive() bool {
-	return uv_is_active((*C.uv_handle_t)(unsafe.Pointer(timer.t)))
 }

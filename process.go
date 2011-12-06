@@ -8,7 +8,7 @@ import "C"
 import "unsafe"
 
 type ProcessOptions struct {
-  Exit_cb func(int, int)
+  Exit_cb func(*Handle, int, int)
   File string
   Args []string
   Env []string
@@ -67,6 +67,7 @@ func Spawn(loop *Loop, options ProcessOptions) (err error) {
 	}
 
 	var p C.uv_process_t
+	p.data = unsafe.Pointer(&callback_info{exit_cb: options.Exit_cb})
 	r := uv_spawn(loop.l, &p, opt)
 	if r != 0 {
 		return loop.LastError().Error()
