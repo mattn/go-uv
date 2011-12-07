@@ -10,6 +10,7 @@ import (
 func main() {
 	gtk.Init(nil)
 	window := gtk.Window(gtk.GTK_WINDOW_TOPLEVEL)
+	window.SetTitle("Clock")
 	vbox := gtk.VBox(false, 1)
 	label := gtk.Label("")
 	vbox.Add(label)
