@@ -6,6 +6,7 @@ package uv
 */
 import "C"
 import "unsafe"
+import "runtime"
 
 type ProcessOptions struct {
   Exit_cb func(*Handle, int, int)
@@ -26,31 +27,39 @@ func Spawn(loop *Loop, options ProcessOptions) (err error) {
 
 	var opt C.uv_process_options_t
 	defer func() {
+		/*
 		C.free(unsafe.Pointer(opt.file))
-		for n := 0; n < len(options.Args); n++ {
-			C.free(((*[1<<24]unsafe.Pointer)(unsafe.Pointer(opt.args)))[n])
+		if len(options.Args) > 0 {
+			for n := 0; n < len(options.Args); n++ {
+				C.free(unsafe.Pointer(((*[1<<24]*C.char)(unsafe.Pointer(&opt.args)))[n]))
+			}
+			C.free(unsafe.Pointer(opt.args))
 		}
-		C.free(unsafe.Pointer(opt.args))
-		for n := 0; n < len(options.Env); n++ {
-			C.free(((*[1<<24]unsafe.Pointer)(unsafe.Pointer(opt.env)))[n])
+		if len(options.Env) > 0 {
+			for n := 0; n < len(options.Env); n++ {
+				C.free(unsafe.Pointer(((*[1<<24]*C.char)(unsafe.Pointer(&opt.env)))[n]))
+			}
+			C.free(unsafe.Pointer(opt.env))
 		}
-		C.free(unsafe.Pointer(opt.args))
 		C.free(unsafe.Pointer(opt.cwd))
+		*/
 	}()
 	if len(options.File) > 0 {
 		opt.file = C.CString(options.File)
 	}
 	if len(options.Args) > 0 {
-		opt.args = (**C.char)(C.malloc(C.size_t(4 * len(options.Args))))
+		opt.args = (**C.char)(C.malloc(C.size_t(4 * (len(options.Args)+1))))
 		for n := 0; n < len(options.Args); n++ {
-			((*[1<<24]unsafe.Pointer)(unsafe.Pointer(opt.args)))[n] = unsafe.Pointer(C.CString(options.Args[n]))
+			((*[1<<24]*C.char)(unsafe.Pointer(&opt.args)))[n] = C.CString(options.Args[n])
 		}
+		((*[1<<24]*C.char)(unsafe.Pointer(&opt.args)))[len(options.Args)] = nil
 	}
 	if len(options.Env) > 0 {
-		opt.env = (**C.char)(C.malloc(C.size_t(4 * len(options.Env))))
+		opt.env = (**C.char)(C.malloc(C.size_t(4 * (len(options.Env)+1))))
 		for n := 0; n < len(options.Args); n++ {
-			((*[1<<24]unsafe.Pointer)(unsafe.Pointer(opt.env)))[n] = unsafe.Pointer(C.CString(options.Env[n]))
+			((*[1<<24]*C.char)(unsafe.Pointer(&opt.env)))[n] = C.CString(options.Args[n])
 		}
+		((*[1<<24]*C.char)(unsafe.Pointer(&opt.env)))[len(options.Args)] = nil
 	}
 	if len(options.Cwd) > 0 {
 		opt.cwd = C.CString(options.Cwd)
@@ -64,6 +73,9 @@ func Spawn(loop *Loop, options ProcessOptions) (err error) {
 	}
 	if options.StderrStream != nil {
 		opt.stderr_stream = options.StderrStream.p
+	}
+	if runtime.GOOS == "windows" {
+		opt.windows_verbatim_arguments = 1
 	}
 
 	var p C.uv_process_t
