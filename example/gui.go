@@ -19,9 +19,9 @@ func main() {
 	window.ShowAll()
 
 	timer, _ := uv.TimerInit(nil)
-	timer.Start(1000, 1000, func(h *uv.Handle, status int) {
+	timer.Start(func(h *uv.Handle, status int) {
 		label.SetLabel(fmt.Sprintf("%v", time.Now()))
-	})
+	}, 1000, 1000)
 
 	idle, _ := uv.IdleInit(nil)
 	idle.Start(func(h *uv.Handle, status int) {

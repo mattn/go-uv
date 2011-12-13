@@ -30,7 +30,7 @@ func (timer *Timer) GetLoop() *Loop {
 	return &Loop{timer.l}
 }
 
-func (timer *Timer) Start(timeout int64, repeat int64, cb func(*Handle, int)) (err error) {
+func (timer *Timer) Start(cb func(*Handle, int), timeout int64, repeat int64) (err error) {
 	cbi := (*callback_info)(timer.t.data)
 	cbi.timer_cb = cb
 	r := uv_timer_start(timer.t, timeout, repeat)
