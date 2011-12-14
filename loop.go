@@ -25,6 +25,10 @@ func (loop *Loop) Run() {
 	C.uv_run(loop.l)
 }
 
+func (loop *Loop) RunOnce() {
+	C.uv_run_once(loop.l)
+}
+
 func (loop *Loop) Ref() {
 	C.uv_ref(loop.l)
 }
