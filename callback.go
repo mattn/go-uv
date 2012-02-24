@@ -265,8 +265,7 @@ func uv_spawn(loop *C.uv_loop_t, process *C.uv_process_t, options C.uv_process_o
 }
 
 //export __uv_connect_cb
-func __uv_connect_cb(p unsafe.Pointer, status int) {
-	c := (*C.uv_connect_t)(p)
+func __uv_connect_cb(c *C.uv_connect_t, status int) {
 	cbi := (*callback_info)(c.handle.data)
 	if cbi.connect_cb != nil {
 		cbi.connect_cb(&Request{
@@ -278,8 +277,7 @@ func __uv_connect_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_connection_cb
-func __uv_connection_cb(p unsafe.Pointer, status int) {
-	s := (*C.uv_stream_t)(p)
+func __uv_connection_cb(s *C.uv_stream_t, status int) {
 	cbi := (*callback_info)(s.data)
 	if cbi.connection_cb != nil {
 		cbi.connection_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, status)
@@ -287,17 +285,19 @@ func __uv_connection_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_read_cb
-func __uv_read_cb(p unsafe.Pointer, nread int, buf unsafe.Pointer) {
-	s := (*C.uv_stream_t)(p)
+func __uv_read_cb(s *C.uv_stream_t, nread int, buf C.uv_buf_t) {
 	cbi := (*callback_info)(s.data)
 	if cbi.read_cb != nil {
-		cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf))[0:nread])
+		if nread == -1  {
+			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, nil)
+		} else {
+			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:nread])
+		}
 	}
 }
 
 //export __uv_write_cb
-func __uv_write_cb(p unsafe.Pointer, status int) {
-	w := (*C.uv_write_t)(p)
+func __uv_write_cb(w *C.uv_write_t, status int) {
 	cbi := (*callback_info)(w.handle.data)
 	if cbi.write_cb != nil {
 		cbi.write_cb(&Request{
@@ -309,8 +309,7 @@ func __uv_write_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_close_cb
-func __uv_close_cb(p unsafe.Pointer) {
-	h := (*C.uv_handle_t)(p)
+func __uv_close_cb(h *C.uv_handle_t) {
 	cbi := (*callback_info)(h.data)
 	if cbi.close_cb != nil {
 		cbi.close_cb(&Handle{h, cbi.data})
@@ -318,8 +317,7 @@ func __uv_close_cb(p unsafe.Pointer) {
 }
 
 //export __uv_shutdown_cb
-func __uv_shutdown_cb(p unsafe.Pointer, status int) {
-	s := (*C.uv_shutdown_t)(p)
+func __uv_shutdown_cb(s *C.uv_shutdown_t, status int) {
 	cbi := (*callback_info)(s.handle.data)
 	if cbi.shutdown_cb != nil {
 		cbi.shutdown_cb(&Request{
@@ -331,19 +329,22 @@ func __uv_shutdown_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_udp_recv_cb
-func __uv_udp_recv_cb(p unsafe.Pointer, nread int, buf unsafe.Pointer, sa unsafe.Pointer, flags uint) {
-	u := (*C.uv_udp_t)(p)
+func __uv_udp_recv_cb(u *C.uv_udp_t, nread int, buf C.uv_buf_t, sa *C.struct_sockaddr, flags uint) {
 	cbi := (*callback_info)(u.data)
 	if cbi.udp_recv_cb != nil {
-		psa := &SockaddrIn4{*(*C.struct_sockaddr_in)(sa)}
-		cbi.udp_recv_cb(&Handle{
-			(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf))[0:nread], psa, flags)
+		psa := &SockaddrIn4{*(*C.struct_sockaddr_in)(unsafe.Pointer(sa))}
+		if nread == -1 {
+			cbi.udp_recv_cb(&Handle{
+				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, nil, psa, flags)
+		} else {
+			cbi.udp_recv_cb(&Handle{
+				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:nread], psa, flags)
+		}
 	}
 }
 
 //export __uv_udp_send_cb
-func __uv_udp_send_cb(p unsafe.Pointer, status int) {
-	us := (*C.uv_udp_send_t)(p)
+func __uv_udp_send_cb(us *C.uv_udp_send_t, status int) {
 	cbi := (*callback_info)(us.handle.data)
 	if cbi.udp_send_cb != nil {
 		cbi.udp_send_cb(&Request{
@@ -355,8 +356,7 @@ func __uv_udp_send_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_timer_cb
-func __uv_timer_cb(p unsafe.Pointer, status int) {
-	t := (*C.uv_timer_t)(p)
+func __uv_timer_cb(t *C.uv_timer_t, status int) {
 	cbi := (*callback_info)(t.data)
 	if cbi.timer_cb != nil {
 		cbi.timer_cb(&Handle{
@@ -365,8 +365,7 @@ func __uv_timer_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_idle_cb
-func __uv_idle_cb(p unsafe.Pointer, status int) {
-	i := (*C.uv_idle_t)(p)
+func __uv_idle_cb(i *C.uv_idle_t, status int) {
 	cbi := (*callback_info)(i.data)
 	if cbi.idle_cb != nil {
 		cbi.idle_cb(&Handle{
@@ -375,8 +374,7 @@ func __uv_idle_cb(p unsafe.Pointer, status int) {
 }
 
 //export __uv_exit_cb
-func __uv_exit_cb(p unsafe.Pointer, exit_status int, term_signal int) {
-	pc := (*C.uv_process_t)(p)
+func __uv_exit_cb(pc *C.uv_process_t, exit_status int, term_signal int) {
 	cbi := (*callback_info)(pc.data)
 	if cbi.exit_cb != nil {
 		cbi.exit_cb(&Handle{

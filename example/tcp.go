@@ -11,17 +11,21 @@ func main() {
 	tcp.Listen(10, func(h *uv.Handle, status int) {
 		client, _ := tcp.Accept()
 		println("server: accept")
+		line := ""
 		client.ReadStart(func(h *uv.Handle, data []byte) {
-			println("client: read", string(data))
-			client.Write(data, func(r *uv.Request, status int) {
-				println("client: written")
-			})
-			client.Close(func(h *uv.Handle) {
+			if data == nil {
 				println("client: closed")
-			})
-			tcp.Close(func(h *uv.Handle) {
-				println("server: closed")
-			})
+				client.Close(nil)
+				return
+			}
+			s := string(data)
+			print(s)
+			line += s
+			if s[len(s)-1] == '\n' {
+				client.Write([]byte(line), func(r *uv.Request, status int) {
+					println("client: written")
+				})
+			}
 		})
 	})
 
