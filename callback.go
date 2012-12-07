@@ -2,7 +2,7 @@ package uv
 
 /*
 #include <stdlib.h>
-#include <uv/uv.h>
+#include <uv.h>
 
 extern void __uv_connect_cb(uv_connect_t* req, int status);
 extern void __uv_connection_cb(uv_stream_t* stream, int status);
@@ -83,7 +83,7 @@ static int _uv_spawn(uv_loop_t* loop, uv_process_t* process, uv_process_options_
 
 #cgo darwin LDFLAGS: -luv
 #cgo linux LDFLAGS: -ldl -luv -lpthread -lrt -lm
-#cgo windows LDFLAGS: -luv.dll -lws2_32
+#cgo windows LDFLAGS: -luv.dll -lws2_32 -lws2_32 -lpsapi -liphlpapi
 */
 import "C"
 import "unsafe"
@@ -210,7 +210,7 @@ func uv_udp_recv_stop(udp *C.uv_udp_t) int {
 }
 
 func uv_buf_init(b []byte) C.uv_buf_t {
-	return C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)))
+	return C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.uint(len(b)))
 }
 
 func uv_tcp_nodelay(tcp *C.uv_tcp_t, enable bool) int {

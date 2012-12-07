@@ -1,7 +1,7 @@
 package uv
 
 /*
-#include <uv/uv.h>
+#include <uv.h>
 #include <stdlib.h>
 */
 import "C"

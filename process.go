@@ -1,12 +1,11 @@
 package uv
 
 /*
-#include <uv/uv.h>
+#include <uv.h>
 #include <stdlib.h>
 */
 import "C"
 import "unsafe"
-import "runtime"
 
 type ProcessOptions struct {
   Exit_cb func(*Handle, int, int)
@@ -14,10 +13,6 @@ type ProcessOptions struct {
   Args []string
   Env []string
   Cwd string
-  WindowsVerbatimArguments int
-  StdinStream *Pipe
-  StdoutStream *Pipe
-  StderrStream *Pipe
 }
 
 func Spawn(loop *Loop, options ProcessOptions) (err error) {
@@ -64,19 +59,7 @@ func Spawn(loop *Loop, options ProcessOptions) (err error) {
 	if len(options.Cwd) > 0 {
 		opt.cwd = C.CString(options.Cwd)
 	}
-	opt.windows_verbatim_arguments = C.int(options.WindowsVerbatimArguments)
-	if options.StdinStream != nil {
-		opt.stdin_stream = options.StdinStream.p
-	}
-	if options.StdoutStream != nil {
-		opt.stdout_stream = options.StdoutStream.p
-	}
-	if options.StderrStream != nil {
-		opt.stderr_stream = options.StderrStream.p
-	}
-	if runtime.GOOS == "windows" {
-		opt.windows_verbatim_arguments = 1
-	}
+	// TODO: uv_stdio_container_t
 
 	var p C.uv_process_t
 	p.data = unsafe.Pointer(&callback_info{exit_cb: options.Exit_cb})

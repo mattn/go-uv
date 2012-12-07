@@ -1,7 +1,7 @@
 package uv
 
 /*
-#include <uv/uv.h>
+#include <uv.h>
 */
 import "C"
 import "unsafe"
@@ -68,7 +68,7 @@ func (udp *Udp) RecvStop() (err error) {
 func (udp *Udp) Send(b []byte, sa SockaddrIn, cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(udp.u.data)
 	cbi.udp_send_cb = cb
-	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)))
+	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.uint(len(b)))
 	var r int
 	sa4, is_v4 := sa.(*SockaddrIn4)
 	if is_v4 {

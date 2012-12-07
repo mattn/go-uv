@@ -9,10 +9,10 @@ import (
 
 func main() {
 	gtk.Init(nil)
-	window := gtk.Window(gtk.GTK_WINDOW_TOPLEVEL)
+	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
 	window.SetTitle("Clock")
-	vbox := gtk.VBox(false, 1)
-	label := gtk.Label("")
+	vbox := gtk.NewVBox(false, 1)
+	label := gtk.NewLabel("")
 	vbox.Add(label)
 	window.Add(vbox)
 	window.SetDefaultSize(300, 20)

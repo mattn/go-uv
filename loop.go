@@ -1,7 +1,7 @@
 package uv
 
 /*
-#include <uv/uv.h>
+#include <uv.h>
 */
 import "C"
 
@@ -27,14 +27,6 @@ func (loop *Loop) Run() {
 
 func (loop *Loop) RunOnce() {
 	C.uv_run_once(loop.l)
-}
-
-func (loop *Loop) Ref() {
-	C.uv_ref(loop.l)
-}
-
-func (loop *Loop) Unref() {
-	C.uv_unref(loop.l)
 }
 
 func (loop *Loop) UpdateTime() {

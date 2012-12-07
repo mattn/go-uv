@@ -1,7 +1,7 @@
 package uv
 
 /*
-#include <uv/uv.h>
+#include <uv.h>
 */
 import "C"
 import "unsafe"
@@ -28,6 +28,14 @@ func PipeInit(loop *Loop, ipc int) (pipe *Pipe, err error) {
 
 func (pipe *Pipe) GetLoop() *Loop {
 	return &Loop{pipe.l}
+}
+
+func (pipe *Pipe) Open(name string) (err error) {
+	r := uv_pipe_bind(pipe.p, name)
+	if r != 0 {
+		return pipe.GetLoop().LastError().Error()
+	}
+	return nil
 }
 
 func (pipe *Pipe) Bind(name string) (err error) {
@@ -57,7 +65,7 @@ func (pipe *Pipe) Connect(name string, cb func(*Request, int)) (err error) {
 }
 
 func (pipe *Pipe) Accept() (client *Pipe, err error) {
-	c, err := PipeInit(pipe.GetLoop(), 1)
+	c, err := PipeInit(pipe.GetLoop(), 0)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +97,7 @@ func (pipe *Pipe) ReadStop() (err error) {
 func (pipe *Pipe) Write(b []byte, cb func(*Request, int)) (err error) {
 	cbi := (*callback_info)(pipe.p.data)
 	cbi.write_cb = cb
-	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.size_t(len(b)))
+	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.uint(len(b)))
 	r := uv_write((*C.uv_stream_t)(unsafe.Pointer(pipe.p)), &buf, 1)
 	if r != 0 {
 		return pipe.GetLoop().LastError().Error()
