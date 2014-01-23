@@ -20,7 +20,7 @@ func PipeInit(loop *Loop, ipc int) (pipe *Pipe, err error) {
 	}
 	r := C.uv_pipe_init(loop.l, &p, C.int(ipc))
 	if r != 0 {
-		return nil, pipe.GetLoop().LastError().Error()
+		return nil, &Error{int(r)}
 	}
 	p.data = unsafe.Pointer(&callback_info{})
 	return &Pipe{&p, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&p)), p.data}}, nil
@@ -33,7 +33,7 @@ func (pipe *Pipe) GetLoop() *Loop {
 func (pipe *Pipe) Open(name string) (err error) {
 	r := uv_pipe_bind(pipe.p, name)
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func (pipe *Pipe) Open(name string) (err error) {
 func (pipe *Pipe) Bind(name string) (err error) {
 	r := uv_pipe_bind(pipe.p, name)
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func (pipe *Pipe) Listen(backlog int, cb func(*Handle, int)) (err error) {
 	cbi.connection_cb = cb
 	r := uv_listen((*C.uv_stream_t)(unsafe.Pointer(pipe.p)), backlog)
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -71,7 +71,7 @@ func (pipe *Pipe) Accept() (client *Pipe, err error) {
 	}
 	r := uv_accept((*C.uv_stream_t)(unsafe.Pointer(pipe.p)), (*C.uv_stream_t)(unsafe.Pointer(c.p)))
 	if r != 0 {
-		return nil, pipe.GetLoop().LastError().Error()
+		return nil, &Error{r}
 	}
 	return &Pipe{c.p, pipe.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(c.p)), c.p.data}}, nil
 }
@@ -81,7 +81,7 @@ func (pipe *Pipe) ReadStart(cb func(*Handle, []byte)) (err error) {
 	cbi.read_cb = cb
 	r := uv_read_start((*C.uv_stream_t)(unsafe.Pointer(pipe.p)))
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func (pipe *Pipe) ReadStart(cb func(*Handle, []byte)) (err error) {
 func (pipe *Pipe) ReadStop() (err error) {
 	r := uv_read_stop((*C.uv_stream_t)(unsafe.Pointer(pipe.p)))
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -100,7 +100,7 @@ func (pipe *Pipe) Write(b []byte, cb func(*Request, int)) (err error) {
 	buf := C.uv_buf_init((*C.char)(unsafe.Pointer(&b[0])), C.uint(len(b)))
 	r := uv_write((*C.uv_stream_t)(unsafe.Pointer(pipe.p)), &buf, 1)
 	if r != 0 {
-		return pipe.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }

@@ -1,12 +1,19 @@
 package main
 
-import "github.com/mattn/go-uv"
+import (
+	"github.com/mattn/go-uv"
+	"log"
+)
 
 func main() {
 	tcp, _ := uv.TcpInit(nil)
-	err := tcp.Bind(uv.Ip4Addr("0.0.0.0", 8888))
+	addr, err := uv.Ip4Addr("0.0.0.0", 8888)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+	}
+	err = tcp.Bind(addr)
+	if err != nil {
+		log.Fatal(err)
 	}
 	tcp.Listen(10, func(h *uv.Handle, status int) {
 		client, _ := tcp.Accept()

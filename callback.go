@@ -22,23 +22,23 @@ static uv_buf_t _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size) {
     return uv_buf_init(buf, suggested_size);
 }
 
-static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in addr) {
+static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in* addr) {
 	return uv_udp_send(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
 }
 
-static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in6 addr) {
-	return uv_udp_send6(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
+static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in6* addr) {
+	return uv_udp_send(req, handle, bufs, bufcnt, (struct sockaddr_in*) addr, __uv_udp_send_cb);
 }
 
 static int _uv_udp_recv_start(uv_udp_t* udp) {
 	return uv_udp_recv_start(udp, _uv_alloc_cb, __uv_udp_recv_cb);
 }
 
-static int _uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in address) {
+static int _uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr* address) {
 	return uv_tcp_connect(req, handle, address, __uv_connect_cb);
 }
 
-static int _uv_tcp_connect6(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in6 address) {
+static int _uv_tcp_connect6(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in6* address) {
 	return uv_tcp_connect6(req, handle, address, __uv_connect_cb);
 }
 
@@ -76,7 +76,7 @@ static int _uv_idle_start(uv_idle_t* idle) {
 
 static int _uv_spawn(uv_loop_t* loop, uv_process_t* process, uv_process_options_t options) {
 	options.exit_cb = __uv_exit_cb;
-	return uv_spawn(loop, process, options);
+	return uv_spawn(loop, process, &options);
 }
 
 #define UV_SIZEOF_SOCKADDR_IN ((int)sizeof(struct sockaddr_in))
@@ -123,22 +123,22 @@ func (handle *Handle) IsActive() bool {
 	return uv_is_active(handle.h)
 }
 
-func uv_tcp_bind(tcp *C.uv_tcp_t, sa4 C.struct_sockaddr_in) int {
-	return int(C.uv_tcp_bind(tcp, sa4))
+func uv_tcp_bind(tcp *C.uv_tcp_t, sa4 *C.struct_sockaddr_in) int {
+	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
 }
 
-func uv_tcp_bind6(tcp *C.uv_tcp_t, sa6 C.struct_sockaddr_in6) int {
-	return int(C.uv_tcp_bind6(tcp, sa6))
+func uv_tcp_bind6(tcp *C.uv_tcp_t, sa6 *C.struct_sockaddr_in6) int {
+	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
 }
 
-func uv_tcp_connect(tcp *C.uv_tcp_t, sa4 C.struct_sockaddr_in) int {
+func uv_tcp_connect(tcp *C.uv_tcp_t, sa4 *C.struct_sockaddr_in) int {
 	var req C.uv_connect_t
-	return int(C._uv_tcp_connect(&req, tcp, sa4))
+	return int(C._uv_tcp_connect(&req, tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
 }
 
-func uv_tcp_connect6(tcp *C.uv_tcp_t, sa6 C.struct_sockaddr_in6) int {
+func uv_tcp_connect6(tcp *C.uv_tcp_t, sa6 *C.struct_sockaddr_in6) int {
 	var req C.uv_connect_t
-	return int(C._uv_tcp_connect6(&req, tcp, sa6))
+	return int(C._uv_tcp_connect(&req, tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
 }
 
 func uv_pipe_connect(pipe *C.uv_pipe_t, name string) {
@@ -183,12 +183,20 @@ func uv_write(stream *C.uv_stream_t, buf *C.uv_buf_t, bufcnt int) int {
 	return int(C._uv_write(&req, stream, buf, C.int(bufcnt)))
 }
 
-func uv_udp_send(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa4 C.struct_sockaddr_in) int {
+func uv_udp_bind(udp *C.uv_udp_t, sa4 *C.struct_sockaddr_in, flags uint) int {
+	return int(C.uv_udp_bind(udp, (*C.struct_sockaddr)(unsafe.Pointer(sa4)), C.uint(flags)))
+}
+
+func uv_udp_bind6(udp *C.uv_udp_t, sa6 *C.struct_sockaddr_in6, flags uint) int {
+	return int(C.uv_udp_bind(udp, (*C.struct_sockaddr)(unsafe.Pointer(sa6)), C.uint(flags)))
+}
+
+func uv_udp_send(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa4 *C.struct_sockaddr_in) int {
 	var req C.uv_udp_send_t
 	return int(C._uv_udp_send(&req, udp, buf, C.int(bufcnt), sa4))
 }
 
-func uv_udp_send6(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa6 C.struct_sockaddr_in6) int {
+func uv_udp_send6(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa6 *C.struct_sockaddr_in6) int {
 	var req C.uv_udp_send_t
 	return int(C._uv_udp_send6(&req, udp, buf, C.int(bufcnt), sa6))
 }

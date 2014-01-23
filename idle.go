@@ -20,7 +20,7 @@ func IdleInit(loop *Loop) (idle *Idle, err error) {
 	}
 	r := C.uv_idle_init(loop.l, &i)
 	if r != 0 {
-		return nil, idle.GetLoop().LastError().Error()
+		return nil, &Error{int(r)}
 	}
 	i.data = unsafe.Pointer(&callback_info{})
 	return &Idle{&i, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&i)), i.data}}, nil
@@ -35,7 +35,7 @@ func (idle *Idle) Start(cb func(*Handle, int)) (err error) {
 	cbi.idle_cb = cb
 	r := uv_idle_start(idle.i)
 	if r != 0 {
-		return idle.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -43,7 +43,7 @@ func (idle *Idle) Start(cb func(*Handle, int)) (err error) {
 func (idle *Idle) Stop() (err error) {
 	r := C.uv_idle_stop(idle.i)
 	if r != 0 {
-		return idle.GetLoop().LastError().Error()
+		return &Error{int(r)}
 	}
 	return nil
 }

@@ -22,11 +22,11 @@ func (loop *Loop) Delete() {
 }
 
 func (loop *Loop) Run() {
-	C.uv_run(loop.l)
+	C.uv_run(loop.l, C.UV_RUN_DEFAULT)
 }
 
 func (loop *Loop) RunOnce() {
-	C.uv_run_once(loop.l)
+	C.uv_run(loop.l, C.UV_RUN_ONCE)
 }
 
 func (loop *Loop) UpdateTime() {
@@ -35,8 +35,4 @@ func (loop *Loop) UpdateTime() {
 
 func (loop *Loop) Now() int64 {
 	return int64(C.uv_now(loop.l))
-}
-
-func (loop *Loop) LastError() *Error {
-	return &Error{C.uv_last_error(loop.l)}
 }

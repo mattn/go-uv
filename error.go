@@ -4,20 +4,19 @@ package uv
 #include <uv.h>
 */
 import "C"
-import "errors"
 
 type Error struct {
-	e C.uv_err_t
+	e int
 }
 
 func (err *Error) String() string {
-	return C.GoString(C.uv_strerror(err.e))
+	return C.GoString(C.uv_strerror(C.int(err.e)))
 }
 
-func (err *Error) Error() error {
-	return errors.New(err.String())
+func (err *Error) Error() string {
+	return err.String()
 }
 
 func (err *Error) Name() string {
-	return C.GoString(C.uv_err_name(err.e))
+	return C.GoString(C.uv_err_name(C.int(err.e)))
 }

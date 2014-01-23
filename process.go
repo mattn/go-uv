@@ -65,7 +65,7 @@ func Spawn(loop *Loop, options ProcessOptions) (err error) {
 	p.data = unsafe.Pointer(&callback_info{exit_cb: options.Exit_cb})
 	r := uv_spawn(loop.l, &p, opt)
 	if r != 0 {
-		return loop.LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }

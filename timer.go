@@ -20,7 +20,7 @@ func TimerInit(loop *Loop) (timer *Timer, err error) {
 	}
 	r := C.uv_timer_init(loop.l, &t)
 	if r != 0 {
-		return nil, timer.GetLoop().LastError().Error()
+		return nil, &Error{int(r)}
 	}
 	t.data = unsafe.Pointer(&callback_info{})
 	return &Timer{&t, loop.l, Handle{(*C.uv_handle_t)(unsafe.Pointer(&t)), t.data}}, nil
@@ -35,7 +35,7 @@ func (timer *Timer) Start(cb func(*Handle, int), timeout int64, repeat int64) (e
 	cbi.timer_cb = cb
 	r := uv_timer_start(timer.t, timeout, repeat)
 	if r != 0 {
-		return timer.GetLoop().LastError().Error()
+		return &Error{r}
 	}
 	return nil
 }
@@ -43,7 +43,7 @@ func (timer *Timer) Start(cb func(*Handle, int), timeout int64, repeat int64) (e
 func (timer *Timer) Stop() (err error) {
 	r := C.uv_timer_stop(timer.t)
 	if r != 0 {
-		return timer.GetLoop().LastError().Error()
+		return &Error{int(r)}
 	}
 	return nil
 }
@@ -51,13 +51,13 @@ func (timer *Timer) Stop() (err error) {
 func (timer *Timer) Again() (err error) {
 	r := C.uv_timer_again(timer.t)
 	if r != 0 {
-		return timer.GetLoop().LastError().Error()
+		return &Error{int(r)}
 	}
 	return nil
 }
 
-func (timer *Timer) SetRepeat(repeat int64) {
-	C.uv_timer_set_repeat(timer.t, C.int64_t(repeat))
+func (timer *Timer) SetRepeat(repeat uint64) {
+	C.uv_timer_set_repeat(timer.t, C.uint64_t(repeat))
 }
 
 func (timer *Timer) GetRepeat() int64 {
