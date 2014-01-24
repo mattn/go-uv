@@ -1,21 +1,28 @@
 package main
 
-import "github.com/mattn/go-uv"
+import (
+	"github.com/mattn/go-uv"
+	"log"
+)
 
 func main() {
 	udp, _ := uv.UdpInit(nil)
-	err := udp.Bind(uv.Ip4Addr("0.0.0.0", 8888), 0)
+	addr, err := uv.Ip4Addr("0.0.0.0", 8888)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	println("udp: start")
+	err = udp.Bind(addr, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("udp: start")
 	udp.RecvStart(func(h *uv.Handle, data []byte, sa uv.SockaddrIn, flags uint) {
-		println("udp: read", string(data))
+		log.Println("udp: read", string(data))
 		udp.Send(data, sa, func(r *uv.Request, status int) {
-			println("udp: written")
+			log.Println("udp: written")
 		})
 		udp.Close(func(h *uv.Handle) {
-			println("udp: closed")
+			log.Println("udp: closed")
 		})
 	})
 
