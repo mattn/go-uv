@@ -7,27 +7,26 @@ package uv
 extern void __uv_connect_cb(uv_connect_t* req, int status);
 extern void __uv_connection_cb(uv_stream_t* stream, int status);
 extern void __uv_write_cb(uv_write_t* req, int status);
-extern void __uv_read_cb(uv_stream_t* stream, ssize_t nread, uv_buf_t buf);
-extern void __uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags);
+extern void __uv_read_cb(uv_stream_t* stream, ssize_t nread, uv_buf_t* buf);
+extern void __uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t* buf, struct sockaddr* addr, unsigned flags);
 extern void __uv_udp_send_cb(uv_udp_send_t* req, int status);
 extern void __uv_timer_cb(uv_timer_t* timer, int status);
 extern void __uv_idle_cb(uv_idle_t* handle, int status);
 extern void __uv_close_cb(uv_handle_t* handle);
 extern void __uv_shutdown_cb(uv_shutdown_t* req, int status);
-extern void __uv_exit_cb(uv_process_t* process, int exit_status, int term_signal);
+extern void __uv_exit_cb(uv_process_t* process, int64_t exit_status, int term_signal);
 
-static uv_buf_t _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size) {
-    char* buf;
-    buf = (char*)malloc(suggested_size);
-    return uv_buf_init(buf, suggested_size);
+static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+	buf->base = malloc(suggested_size);
+	buf->len = suggested_size;
 }
 
-static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in* addr) {
+static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr* addr) {
 	return uv_udp_send(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
 }
 
-static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in6* addr) {
-	return uv_udp_send(req, handle, bufs, bufcnt, (struct sockaddr_in*) addr, __uv_udp_send_cb);
+static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr* addr) {
+	return uv_udp_send(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
 }
 
 static int _uv_udp_recv_start(uv_udp_t* udp) {
@@ -109,7 +108,7 @@ type callback_info struct {
 	shutdown_cb   func(*Request, int)
 	timer_cb      func(*Handle, int)
 	idle_cb       func(*Handle, int)
-	exit_cb       func(*Handle, int, int)
+	exit_cb       func(*Handle, int64, int)
 	data          interface{}
 }
 
@@ -193,12 +192,12 @@ func uv_udp_bind6(udp *C.uv_udp_t, sa6 *C.struct_sockaddr_in6, flags uint) int {
 
 func uv_udp_send(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa4 *C.struct_sockaddr_in) int {
 	var req C.uv_udp_send_t
-	return int(C._uv_udp_send(&req, udp, buf, C.int(bufcnt), sa4))
+	return int(C._uv_udp_send(&req, udp, buf, C.int(bufcnt), (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
 }
 
 func uv_udp_send6(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa6 *C.struct_sockaddr_in6) int {
 	var req C.uv_udp_send_t
-	return int(C._uv_udp_send6(&req, udp, buf, C.int(bufcnt), sa6))
+	return int(C._uv_udp_send6(&req, udp, buf, C.int(bufcnt), (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
 }
 
 func uv_read_start(stream *C.uv_stream_t) int {
@@ -293,13 +292,13 @@ func __uv_connection_cb(s *C.uv_stream_t, status int) {
 }
 
 //export __uv_read_cb
-func __uv_read_cb(s *C.uv_stream_t, nread int, buf C.uv_buf_t) {
+func __uv_read_cb(s *C.uv_stream_t, nread C.ssize_t, buf *C.uv_buf_t) {
 	cbi := (*callback_info)(s.data)
 	if cbi.read_cb != nil {
-		if nread == -1  {
+		if int(nread) == -1  {
 			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, nil)
 		} else {
-			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:nread])
+			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:int(nread)])
 		}
 	}
 }
@@ -337,16 +336,16 @@ func __uv_shutdown_cb(s *C.uv_shutdown_t, status int) {
 }
 
 //export __uv_udp_recv_cb
-func __uv_udp_recv_cb(u *C.uv_udp_t, nread int, buf C.uv_buf_t, sa *C.struct_sockaddr, flags uint) {
+func __uv_udp_recv_cb(u *C.uv_udp_t, nread C.ssize_t, buf *C.uv_buf_t, sa *C.struct_sockaddr, flags uint) {
 	cbi := (*callback_info)(u.data)
 	if cbi.udp_recv_cb != nil {
 		psa := &SockaddrIn4{*(*C.struct_sockaddr_in)(unsafe.Pointer(sa))}
-		if nread == -1 {
+		if int(nread) == -1 {
 			cbi.udp_recv_cb(&Handle{
-				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, nil, psa, flags)
+				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, nil, psa, uint(flags))
 		} else {
 			cbi.udp_recv_cb(&Handle{
-				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:nread], psa, flags)
+				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:int(nread)], psa, uint(flags))
 		}
 	}
 }
@@ -382,7 +381,7 @@ func __uv_idle_cb(i *C.uv_idle_t, status int) {
 }
 
 //export __uv_exit_cb
-func __uv_exit_cb(pc *C.uv_process_t, exit_status int, term_signal int) {
+func __uv_exit_cb(pc *C.uv_process_t, exit_status int64, term_signal int) {
 	cbi := (*callback_info)(pc.data)
 	if cbi.exit_cb != nil {
 		cbi.exit_cb(&Handle{
