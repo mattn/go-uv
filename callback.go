@@ -295,10 +295,11 @@ func __uv_connection_cb(s *C.uv_stream_t, status int) {
 func __uv_read_cb(s *C.uv_stream_t, nread C.ssize_t, buf *C.uv_buf_t) {
 	cbi := (*callback_info)(s.data)
 	if cbi.read_cb != nil {
-		if int(nread) == -1  {
+		n_read := int(nread)
+		if n_read < 0  {
 			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, nil)
 		} else {
-			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:int(nread)])
+			cbi.read_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:n_read])
 		}
 	}
 }
@@ -340,12 +341,13 @@ func __uv_udp_recv_cb(u *C.uv_udp_t, nread C.ssize_t, buf *C.uv_buf_t, sa *C.str
 	cbi := (*callback_info)(u.data)
 	if cbi.udp_recv_cb != nil {
 		psa := &SockaddrIn4{*(*C.struct_sockaddr_in)(unsafe.Pointer(sa))}
-		if int(nread) == -1 {
+		n_read := int(nread)
+		if n_read < 0 {
 			cbi.udp_recv_cb(&Handle{
 				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, nil, psa, uint(flags))
 		} else {
 			cbi.udp_recv_cb(&Handle{
-				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:int(nread)], psa, uint(flags))
+				(*C.uv_handle_t)(unsafe.Pointer(u)), cbi.data}, (*[1 << 30]byte)(unsafe.Pointer(buf.base))[0:n_read], psa, uint(flags))
 		}
 	}
 }
