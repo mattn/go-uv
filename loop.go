@@ -9,6 +9,10 @@ type Loop struct {
 	l *C.uv_loop_t
 }
 
+func Run() {
+	DefaultLoop().Run()
+}
+
 func DefaultLoop() *Loop {
 	return &Loop{C.uv_default_loop()}
 }

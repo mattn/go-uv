@@ -11,5 +11,5 @@ func main() {
 		log.Println("tick")
 	}, 1000, 1000)
 
-	uv.DefaultLoop().Run()
+	uv.Run()
 }
