@@ -122,12 +122,8 @@ func (handle *Handle) IsActive() bool {
 	return uv_is_active(handle.h)
 }
 
-func uv_tcp_bind(tcp *C.uv_tcp_t, sa4 *C.struct_sockaddr_in) int {
-	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
-}
-
-func uv_tcp_bind6(tcp *C.uv_tcp_t, sa6 *C.struct_sockaddr_in6) int {
-	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
+func uv_tcp_bind(tcp *C.uv_tcp_t, sa *C.struct_sockaddr_in, flags uint) int {
+	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa)), C.uint(flags)))
 }
 
 func uv_tcp_connect(tcp *C.uv_tcp_t, sa4 *C.struct_sockaddr_in) int {

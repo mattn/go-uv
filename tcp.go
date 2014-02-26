@@ -34,12 +34,15 @@ func (tcp *Tcp) Bind(sa SockaddrIn) (err error) {
 	var r int
 	sa4, is_v4 := sa.(*SockaddrIn4)
 	if is_v4 {
-		r = uv_tcp_bind(tcp.t, &sa4.sa)
+		r = uv_tcp_bind(tcp.t, &sa4.sa, 0)
 	} else {
+		r = uv_tcp_bind(tcp.t, &sa4.sa, 1)
+		/*
 		sa6, is_v6 := sa.(*SockaddrIn6)
 		if is_v6 {
-			r = uv_tcp_bind6(tcp.t, &sa6.sa)
+			r = uv_tcp_bind(tcp.t, &sa6.sa, 1)
 		}
+		*/
 	}
 	if r != 0 {
 		return &Error{r}
