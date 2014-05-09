@@ -10,7 +10,9 @@ type Error struct {
 }
 
 func (err *Error) String() string {
-	return C.GoString(C.uv_strerror(C.int(err.e)))
+	var error C.uv_err_t
+	error.code = C.uv_err_code(err.e)
+	return C.GoString(C.uv_strerror(error))
 }
 
 func (err *Error) Error() string {
@@ -18,5 +20,7 @@ func (err *Error) Error() string {
 }
 
 func (err *Error) Name() string {
-	return C.GoString(C.uv_err_name(C.int(err.e)))
+	var error C.uv_err_t
+	error.code = C.uv_err_code(err.e)
+	return C.GoString(C.uv_err_name(error))
 }

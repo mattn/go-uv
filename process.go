@@ -8,7 +8,7 @@ import "C"
 import "unsafe"
 
 type ProcessOptions struct {
-  Exit_cb func(*Handle, int64, int)
+  Exit_cb func(*Handle, int, int)
   File string
   Args []string
   Env []string
