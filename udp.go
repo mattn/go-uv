@@ -34,11 +34,11 @@ func (udp *Udp) Bind(sa SockaddrIn, flags uint) (err error) {
 	var r int
 	sa4, is_v4 := sa.(*SockaddrIn4)
 	if is_v4 {
-		r = uv_udp_bind(udp.u, &sa4.sa, flags)
+		r = uv_udp_bind(udp.u, sa4.sa, flags)
 	} else {
 		sa6, is_v6 := sa.(*SockaddrIn6)
 		if is_v6 {
-			r = uv_udp_bind6(udp.u, &sa6.sa, flags)
+			r = uv_udp_bind6(udp.u, sa6.sa, flags)
 		}
 	}
 	if r != 0 {
@@ -72,11 +72,11 @@ func (udp *Udp) Send(b []byte, sa SockaddrIn, cb func(*Request, int)) (err error
 	var r int
 	sa4, is_v4 := sa.(*SockaddrIn4)
 	if is_v4 {
-		r = uv_udp_send(udp.u, &buf, 1, &sa4.sa)
+		r = uv_udp_send(udp.u, &buf, 1, sa4.sa)
 	} else {
 		sa6, is_v6 := sa.(*SockaddrIn6)
 		if is_v6 {
-			r = uv_udp_send6(udp.u, &buf, 1, &sa6.sa)
+			r = uv_udp_send6(udp.u, &buf, 1, sa6.sa)
 		}
 	}
 	if r != 0 {

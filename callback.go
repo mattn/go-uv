@@ -7,37 +7,36 @@ package uv
 extern void __uv_connect_cb(uv_connect_t* req, int status);
 extern void __uv_connection_cb(uv_stream_t* stream, int status);
 extern void __uv_write_cb(uv_write_t* req, int status);
-extern void __uv_read_cb(uv_stream_t* stream, ssize_t nread, uv_buf_t* buf);
-extern void __uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t* buf, struct sockaddr* addr, unsigned flags);
+extern void __uv_read_cb(uv_stream_t* stream, ssize_t nread, uv_buf_t buf);
+extern void __uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags);
 extern void __uv_udp_send_cb(uv_udp_send_t* req, int status);
 extern void __uv_timer_cb(uv_timer_t* timer, int status);
 extern void __uv_idle_cb(uv_idle_t* handle, int status);
 extern void __uv_close_cb(uv_handle_t* handle);
 extern void __uv_shutdown_cb(uv_shutdown_t* req, int status);
-extern void __uv_exit_cb(uv_process_t* process, int64_t exit_status, int term_signal);
+extern void __uv_exit_cb(uv_process_t* process, int exit_status, int term_signal);
 
-static void _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
-	buf->base = malloc(suggested_size);
-	buf->len = suggested_size;
+static uv_buf_t _uv_alloc_cb(uv_handle_t* handle, size_t suggested_size) {
+	return uv_buf_init(malloc(suggested_size), suggested_size);
 }
 
-static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr* addr) {
+static int _uv_udp_send(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in addr) {
 	return uv_udp_send(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
 }
 
-static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr* addr) {
-	return uv_udp_send(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
+static int _uv_udp_send6(uv_udp_send_t* req, uv_udp_t* handle, uv_buf_t bufs[], int bufcnt, struct sockaddr_in6 addr) {
+	return uv_udp_send6(req, handle, bufs, bufcnt, addr, __uv_udp_send_cb);
 }
 
 static int _uv_udp_recv_start(uv_udp_t* udp) {
 	return uv_udp_recv_start(udp, _uv_alloc_cb, __uv_udp_recv_cb);
 }
 
-static int _uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr* address) {
+static int _uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in address) {
 	return uv_tcp_connect(req, handle, address, __uv_connect_cb);
 }
 
-static int _uv_tcp_connect6(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in6* address) {
+static int _uv_tcp_connect6(uv_connect_t* req, uv_tcp_t* handle, struct sockaddr_in6 address) {
 	return uv_tcp_connect6(req, handle, address, __uv_connect_cb);
 }
 
@@ -75,7 +74,7 @@ static int _uv_idle_start(uv_idle_t* idle) {
 
 static int _uv_spawn(uv_loop_t* loop, uv_process_t* process, uv_process_options_t options) {
 	options.exit_cb = __uv_exit_cb;
-	return uv_spawn(loop, process, &options);
+	return uv_spawn(loop, process, options);
 }
 
 #define UV_SIZEOF_SOCKADDR_IN ((int)sizeof(struct sockaddr_in))
@@ -108,7 +107,7 @@ type callback_info struct {
 	shutdown_cb   func(*Request, int)
 	timer_cb      func(*Handle, int)
 	idle_cb       func(*Handle, int)
-	exit_cb       func(*Handle, int64, int)
+	exit_cb       func(*Handle, int, int)
 	data          interface{}
 }
 
@@ -122,18 +121,22 @@ func (handle *Handle) IsActive() bool {
 	return uv_is_active(handle.h)
 }
 
-func uv_tcp_bind(tcp *C.uv_tcp_t, sa *C.struct_sockaddr_in, flags uint) int {
-	return int(C.uv_tcp_bind(tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa)), C.uint(flags)))
+func uv_tcp_bind(tcp *C.uv_tcp_t, sa C.struct_sockaddr_in) int {
+	return int(C.uv_tcp_bind(tcp, sa))
 }
 
-func uv_tcp_connect(tcp *C.uv_tcp_t, sa4 *C.struct_sockaddr_in) int {
-	var req C.uv_connect_t
-	return int(C._uv_tcp_connect(&req, tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
+func uv_tcp_bind6(tcp *C.uv_tcp_t, sa C.struct_sockaddr_in6) int {
+	return int(C.uv_tcp_bind6(tcp, sa))
 }
 
-func uv_tcp_connect6(tcp *C.uv_tcp_t, sa6 *C.struct_sockaddr_in6) int {
+func uv_tcp_connect(tcp *C.uv_tcp_t, sa4 C.struct_sockaddr_in) int {
 	var req C.uv_connect_t
-	return int(C._uv_tcp_connect(&req, tcp, (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
+	return int(C._uv_tcp_connect(&req, tcp, sa4))
+}
+
+func uv_tcp_connect6(tcp *C.uv_tcp_t, sa6 C.struct_sockaddr_in6) int {
+	var req C.uv_connect_t
+	return int(C._uv_tcp_connect6(&req, tcp, sa6))
 }
 
 func uv_pipe_connect(pipe *C.uv_pipe_t, name string) {
@@ -178,22 +181,22 @@ func uv_write(stream *C.uv_stream_t, buf *C.uv_buf_t, bufcnt int) int {
 	return int(C._uv_write(&req, stream, buf, C.int(bufcnt)))
 }
 
-func uv_udp_bind(udp *C.uv_udp_t, sa4 *C.struct_sockaddr_in, flags uint) int {
-	return int(C.uv_udp_bind(udp, (*C.struct_sockaddr)(unsafe.Pointer(sa4)), C.uint(flags)))
+func uv_udp_bind(udp *C.uv_udp_t, sa4 C.struct_sockaddr_in, flags uint) int {
+	return int(C.uv_udp_bind(udp, sa4, C.uint(flags)))
 }
 
-func uv_udp_bind6(udp *C.uv_udp_t, sa6 *C.struct_sockaddr_in6, flags uint) int {
-	return int(C.uv_udp_bind(udp, (*C.struct_sockaddr)(unsafe.Pointer(sa6)), C.uint(flags)))
+func uv_udp_bind6(udp *C.uv_udp_t, sa6 C.struct_sockaddr_in6, flags uint) int {
+	return int(C.uv_udp_bind6(udp, sa6, C.uint(flags)))
 }
 
-func uv_udp_send(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa4 *C.struct_sockaddr_in) int {
+func uv_udp_send(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa4 C.struct_sockaddr_in) int {
 	var req C.uv_udp_send_t
-	return int(C._uv_udp_send(&req, udp, buf, C.int(bufcnt), (*C.struct_sockaddr)(unsafe.Pointer(sa4))))
+	return int(C._uv_udp_send(&req, udp, buf, C.int(bufcnt), sa4))
 }
 
-func uv_udp_send6(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa6 *C.struct_sockaddr_in6) int {
+func uv_udp_send6(udp *C.uv_udp_t, buf *C.uv_buf_t, bufcnt int, sa6 C.struct_sockaddr_in6) int {
 	var req C.uv_udp_send_t
-	return int(C._uv_udp_send6(&req, udp, buf, C.int(bufcnt), (*C.struct_sockaddr)(unsafe.Pointer(sa6))))
+	return int(C._uv_udp_send6(&req, udp, buf, C.int(bufcnt), sa6))
 }
 
 func uv_read_start(stream *C.uv_stream_t) int {
@@ -268,27 +271,27 @@ func uv_spawn(loop *C.uv_loop_t, process *C.uv_process_t, options C.uv_process_o
 }
 
 //export __uv_connect_cb
-func __uv_connect_cb(c *C.uv_connect_t, status int) {
+func __uv_connect_cb(c *C.uv_connect_t, status C.int) {
 	cbi := (*callback_info)(c.handle.data)
 	if cbi.connect_cb != nil {
 		cbi.connect_cb(&Request{
 			(*C.uv_req_t)(unsafe.Pointer(c)),
 			&Handle{
 				(*C.uv_handle_t)(unsafe.Pointer(c.handle)),
-				cbi.data}}, status)
+				cbi.data}}, int(status))
 	}
 }
 
 //export __uv_connection_cb
-func __uv_connection_cb(s *C.uv_stream_t, status int) {
+func __uv_connection_cb(s *C.uv_stream_t, status C.int) {
 	cbi := (*callback_info)(s.data)
 	if cbi.connection_cb != nil {
-		cbi.connection_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, status)
+		cbi.connection_cb(&Handle{(*C.uv_handle_t)(unsafe.Pointer(s)), cbi.data}, int(status))
 	}
 }
 
 //export __uv_read_cb
-func __uv_read_cb(s *C.uv_stream_t, nread C.ssize_t, buf *C.uv_buf_t) {
+func __uv_read_cb(s *C.uv_stream_t, nread C.ssize_t, buf C.uv_buf_t) {
 	cbi := (*callback_info)(s.data)
 	if cbi.read_cb != nil {
 		n_read := int(nread)
@@ -301,14 +304,14 @@ func __uv_read_cb(s *C.uv_stream_t, nread C.ssize_t, buf *C.uv_buf_t) {
 }
 
 //export __uv_write_cb
-func __uv_write_cb(w *C.uv_write_t, status int) {
+func __uv_write_cb(w *C.uv_write_t, status C.int) {
 	cbi := (*callback_info)(w.handle.data)
 	if cbi.write_cb != nil {
 		cbi.write_cb(&Request{
 			(*C.uv_req_t)(unsafe.Pointer(w)),
 			&Handle{
 				(*C.uv_handle_t)(unsafe.Pointer(w.handle)),
-				cbi.data}}, status)
+				cbi.data}}, int(status))
 	}
 }
 
@@ -321,19 +324,19 @@ func __uv_close_cb(h *C.uv_handle_t) {
 }
 
 //export __uv_shutdown_cb
-func __uv_shutdown_cb(s *C.uv_shutdown_t, status int) {
+func __uv_shutdown_cb(s *C.uv_shutdown_t, status C.int) {
 	cbi := (*callback_info)(s.handle.data)
 	if cbi.shutdown_cb != nil {
 		cbi.shutdown_cb(&Request{
 			(*C.uv_req_t)(unsafe.Pointer(s)),
 			&Handle{
 				(*C.uv_handle_t)(unsafe.Pointer(s.handle)),
-				cbi.data}}, status)
+				cbi.data}}, int(status))
 	}
 }
 
 //export __uv_udp_recv_cb
-func __uv_udp_recv_cb(u *C.uv_udp_t, nread C.ssize_t, buf *C.uv_buf_t, sa *C.struct_sockaddr, flags uint) {
+func __uv_udp_recv_cb(u *C.uv_udp_t, nread C.ssize_t, buf C.uv_buf_t, sa *C.struct_sockaddr, flags C.uint) {
 	cbi := (*callback_info)(u.data)
 	if cbi.udp_recv_cb != nil {
 		psa := &SockaddrIn4{*(*C.struct_sockaddr_in)(unsafe.Pointer(sa))}
@@ -349,40 +352,40 @@ func __uv_udp_recv_cb(u *C.uv_udp_t, nread C.ssize_t, buf *C.uv_buf_t, sa *C.str
 }
 
 //export __uv_udp_send_cb
-func __uv_udp_send_cb(us *C.uv_udp_send_t, status int) {
+func __uv_udp_send_cb(us *C.uv_udp_send_t, status C.int) {
 	cbi := (*callback_info)(us.handle.data)
 	if cbi.udp_send_cb != nil {
 		cbi.udp_send_cb(&Request{
 			(*C.uv_req_t)(unsafe.Pointer(us)),
 			&Handle{
 				(*C.uv_handle_t)(unsafe.Pointer(us.handle)),
-				cbi.data}}, status)
+				cbi.data}}, int(status))
 	}
 }
 
 //export __uv_timer_cb
-func __uv_timer_cb(t *C.uv_timer_t, status int) {
+func __uv_timer_cb(t *C.uv_timer_t, status C.int) {
 	cbi := (*callback_info)(t.data)
 	if cbi.timer_cb != nil {
 		cbi.timer_cb(&Handle{
-			(*C.uv_handle_t)(unsafe.Pointer(t)), cbi.data}, status)
+			(*C.uv_handle_t)(unsafe.Pointer(t)), cbi.data}, int(status))
 	}
 }
 
 //export __uv_idle_cb
-func __uv_idle_cb(i *C.uv_idle_t, status int) {
+func __uv_idle_cb(i *C.uv_idle_t, status C.int) {
 	cbi := (*callback_info)(i.data)
 	if cbi.idle_cb != nil {
 		cbi.idle_cb(&Handle{
-			(*C.uv_handle_t)(unsafe.Pointer(i)), cbi.data}, status)
+			(*C.uv_handle_t)(unsafe.Pointer(i)), cbi.data}, int(status))
 	}
 }
 
 //export __uv_exit_cb
-func __uv_exit_cb(pc *C.uv_process_t, exit_status int64, term_signal int) {
+func __uv_exit_cb(pc *C.uv_process_t, exit_status C.int, term_signal C.int) {
 	cbi := (*callback_info)(pc.data)
 	if cbi.exit_cb != nil {
 		cbi.exit_cb(&Handle{
-			(*C.uv_handle_t)(unsafe.Pointer(pc)), cbi.data}, exit_status, term_signal)
+			(*C.uv_handle_t)(unsafe.Pointer(pc)), cbi.data}, int(exit_status), int(term_signal))
 	}
 }
